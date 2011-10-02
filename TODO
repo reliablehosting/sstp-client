@@ -1,0 +1,23 @@
+PPPD Handling:
+* Implement signal handling in sstp-signal.c
+
+SSTP Client:
+* Improve Certificate Verification
+  - Command line option to ignore, or specify
+* Support CRL
+  - Look at stunnel project
+* HTTP Proxy support
+
+Integration
+- NetworkManager, almost complete.
+  - Need to put a dialog box for CA-Cert
+  - Look at openvpn integration
+
+Statistics
+- API to obtain statistics of a running instance?
+
+Doxygen comments throughout the project
+
+Coding style document
+  - Tab Width: 4
+  - Spaces no tabs!

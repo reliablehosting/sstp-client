@@ -1,0 +1,9 @@
+sstp-client (1.0) oneiric; urgency=low
+
+  * Initial release
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 18 Sept 2011 08:00:00 -0800
+
+Local variables:
+mode: debian-changelog
+End:
