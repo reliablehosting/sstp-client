@@ -1,3 +1,10 @@
+sstp-client (1.0.1) oneiric; urgency=low
+
+  * Fixing various bug fixes found while porting to Fedora Core 15.
+  * Adding signal handling, and pretty print of data on termination
+  * Improved handling of pppd upon termination.
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 18 Sept 2011 08:00:00 -0800
 sstp-client (1.0) oneiric; urgency=low
 
   * Initial release

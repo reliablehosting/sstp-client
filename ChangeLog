@@ -1,0 +1,7 @@
+Sun Oct 2 13:22:00 2011  Eivind Naess <eivnaes@yahoo.com>
+
+	* sstp-client 1.0.1 released
+		- Fixing various bugs found while porting to Fedora Core 15
+		- Adding support for configure with libevent2 (--with-libevent=2) 
+		  which is required for newer distributions.
+		- Better handling of pppd, and signal handling

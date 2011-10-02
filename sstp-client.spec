@@ -2,7 +2,7 @@
 %define event_version 2.0.10
 
 Name:		sstp-client
-Version:	1.0
+Version:	1.0.1
 Release:	1%{?dist}
 Summary:	Secure Socket Tunneling Protocol (SSTP) Client
 Group:		Applications/Internet
