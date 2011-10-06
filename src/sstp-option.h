@@ -48,6 +48,7 @@ typedef struct
         int ca_cert : 1;
         int ipparam : 1;
         int user    : 1;
+        int proxy   : 1;
         int password: 1;
 
     } have;
@@ -66,6 +67,9 @@ typedef struct
 
     /*! Password */
     char password[SSTP_PATH_MAX];
+
+    /*! The proxy URL */
+    char proxy[SSTP_PATH_MAX];
 
     /*! Username */
     char user[SSTP_PATH_MAX];

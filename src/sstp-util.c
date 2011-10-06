@@ -90,7 +90,7 @@ status_t sstp_set_sndbuf(int sock, int size)
 }
 
 
-status_t sstp_url_split(sstp_url_st **url, const char *path)
+status_t sstp_url_parse(sstp_url_st **url, const char *path)
 {
     char *ptr = NULL;
     char *ptr1 = NULL;
@@ -110,14 +110,36 @@ status_t sstp_url_split(sstp_url_st **url, const char *path)
     ptr1 = strstr(ptr, "://");
     if (ptr1 != NULL)
     {
-        ctx->protocol = ptr;
+        ctx->schema= ptr;
         *ptr1 = '\0';
         ptr1  += 3;
         ptr    = ptr1;
     }
 
+    /* Username & Password? */
+    ptr1 = strchr(ptr, '@');
+    if (ptr1 != NULL)
+    {
+        ctx->user = ptr;
+        *ptr1++ = '\0';
+        ptr = ptr1;
+    }
+
     /* Set the site pointer */
-    ctx->site = ptr;
+    ctx->host = ptr;
+    
+    /* Extract the password */
+    if (ctx->user)
+    {
+        ptr1 = strchr(ctx->user, ':');
+        if (!ptr1)
+        {
+            goto errout;
+        }
+
+        *ptr1++ = '\0';
+        ctx->password = ptr1;
+    }
 
     /* Look for the optional port component */
     ptr1 = strchr(ptr, ':');
@@ -138,7 +160,7 @@ status_t sstp_url_split(sstp_url_st **url, const char *path)
     }
 
     /* Either must be specified */
-    if (!ctx->protocol && !ctx->port)
+    if (!ctx->schema && !ctx->port)
     {
         ctx->port = "443";
     }

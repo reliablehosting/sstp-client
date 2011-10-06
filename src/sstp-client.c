@@ -36,6 +36,8 @@
 /*! Global context for the sstp-client */
 static sstp_client_st client;
 
+typedef void (*sstp_client_cb)(sstp_stream_st*, sstp_buff_st*, sstp_client_st*, status_t);
+
 
 static void sstp_client_event_cb(sstp_client_st *client, int ret)
 {
@@ -255,13 +257,23 @@ static void sstp_client_connected(sstp_stream_st *stream, sstp_buff_st *buf,
 }
 
 
+static void sstp_client_proxy_connected(sstp_stream_st *stream, sstp_buff_st *buf,
+        sstp_client_st *client, status_t status)
+{
+    sstp_die("Not Implemented", -1);
+}
+
+
 /*!
  * @brief Connect to the server
  */
 static status_t sstp_client_connect(sstp_client_st *client, 
         struct sockaddr *addr, int alen)
 {
-    status_t ret;
+    sstp_client_cb complete_cb = (client->option.have.proxy)
+            ? sstp_client_proxy_connected
+            : sstp_client_connected;
+    status_t ret = SSTP_FAIL;
 
     /* Create the I/O streams */
     ret = sstp_stream_create(&client->stream, client->ev_base, client->ssl_ctx);
@@ -272,12 +284,11 @@ static status_t sstp_client_connect(sstp_client_st *client,
     }
 
     /* Have the stream connect */
-    ret = sstp_stream_connect(client->stream, addr, alen, (sstp_complete_fn) 
-            sstp_client_connected, client, 10);
+    ret = sstp_stream_connect(client->stream, addr, alen, (sstp_complete_fn) complete_cb, client, 10);
     if (SSTP_INPROG != ret && 
         SSTP_OKAY   != ret)
     {
-        log_err("Could not connect to the server");
+        log_err("Could not connect to the server, %m (%d)", errno);
         goto done;
     }
 
@@ -353,35 +364,31 @@ done:
 /*!
  * @brief Lookup the server name
  */
-static status_t sstp_client_lookup(sstp_client_st *client)
+static status_t sstp_client_lookup(sstp_url_st *uri, sstp_peer_st *peer)
 {
     status_t status    = SSTP_FAIL;
-    sstp_peer_st *peer = &client->host;
-    sstp_url_st  *url  = client->url;
+    const char *service= NULL;
     addrinfo_st *list  = NULL;
-    addrinfo_st hints;
-    const char *service = NULL;
+    addrinfo_st hints  = 
+    {
+        .ai_family   = AF_UNSPEC,
+        .ai_socktype = SOCK_STREAM,
+        .ai_protocol = 0,
+        .ai_flags    = AI_PASSIVE | AI_CANONNAME,
+    };
     int ret;
 
-    /* Provide the hints to getaddrinfo */
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family     = AF_UNSPEC;
-    hints.ai_socktype   = SOCK_STREAM;
-    hints.ai_protocol   = 0;
-    hints.ai_flags      = AI_PASSIVE     |
-                          AI_CANONNAME;
-    
     /* Get the service string */
-    service = (url->port) 
-        ? url->port
-        : url->protocol;
+    service = (uri->port) 
+        ? uri->port
+        : uri->schema;
 
     /* Resolve the server address */
-    ret = getaddrinfo(url->site, service, &hints, &list);
+    ret = getaddrinfo(uri->host, service, &hints, &list);
     if (ret != 0 || !list)
     {
         log_err("Could not resolve host: %s, %s (%d)",
-                url->site, gai_strerror(ret), ret);
+                uri->host, gai_strerror(ret), ret);
         goto done;
     }
 
@@ -428,14 +435,6 @@ static status_t sstp_client_init(sstp_client_st *client, sstp_option_st *opts)
         goto done;
     }
     
-    /* Convert the server to URL componentized string */
-    status = sstp_url_split(&client->url, opts->server);
-    if (SSTP_OKAY != status)
-    {
-        log_err("Could not parse server argument");
-        goto done;
-    }
-
     /* Keep a copy of the options */
     memcpy(&client->option, opts, sizeof(client->option));
 
@@ -588,13 +587,32 @@ int main(int argc, char *argv[])
         sstp_die("Could not setup notification", -1);
     }
 
-    /* Perform DNS lookup of the server */
-    ret = sstp_client_lookup(&client);
+    /* Connect to the proxy first */
+    if (option.have.proxy)
+    {
+        /* Parse the Proxy URL */
+        ret = sstp_url_parse(&client.url, option.proxy);
+        if (SSTP_OKAY != ret)
+        {
+            sstp_die("Could not parse the proxy URL", -1);
+        }
+    }
+    else
+    {
+        ret = sstp_url_parse(&client.url, option.server);
+        if (SSTP_OKAY != ret)
+        {
+            sstp_die("Could not parse the server URL", -1);
+        }
+    }
+
+    /* Lookup the URL of the proxy server */
+    ret = sstp_client_lookup(client.url, &client.host);
     if (SSTP_OKAY != ret)
     {
-        sstp_die("Could not lookup server `%s'", -1, client.host.name);
+        sstp_die("Could not lookup host: `%s'", -1, client.url->host);
     }
-    
+
     /* Connect to the server */
     ret = sstp_client_connect(&client, &client.host.addr, 
             client.host.alen);

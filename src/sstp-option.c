@@ -85,6 +85,7 @@ void sstp_usage_die(const char *prog, int code,
     printf("  --nolaunchpppd           Don't start pppd, for use with pty option\n");
     printf("  --user                   Username\n");
     printf("  --password               Password\n");
+    printf("  --proxy                  Proxy URL\n");
     printf("  --version                Display the version information\n\n");
 
     /* Additional log usage */
@@ -159,6 +160,11 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 7:
+        strncpy(ctx->proxy, optarg, sizeof(ctx->proxy));
+        ctx->have.proxy = 1;
+        break;
+
+    case 8:
         strncpy(ctx->user, optarg, sizeof(ctx->user));
         ctx->have.user = 1;
         break;
@@ -184,6 +190,7 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         { "ipparam",        required_argument, NULL,  0  },
         { "nolaunchpppd",   no_argument,       NULL,  0  },
         { "password",       required_argument, NULL,  0  },
+        { "proxy",          required_argument, NULL,  0  },
         { "user",           required_argument, NULL,  0  },
         { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
@@ -222,6 +229,13 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
             sstp_usage_die(argv[0], -1, "Unrecognized command line option: `%c'", c);
             break;
         }
+    }
+
+    /* If proxy wasn't specified, use the http_proxy environment variable */
+    if (!ctx->have.proxy && getenv("http_proxy"))
+    {
+        strncpy(ctx->proxy, getenv("http_proxy"), sizeof(ctx->proxy));
+        ctx->have.proxy = 1;
     }
 
     /* At least one argument is required */

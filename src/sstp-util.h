@@ -31,10 +31,16 @@
 typedef struct
 {
     /* The service string, or NULL if none */
-    char *protocol;
+    char *schema;
     
     /*< The host, either a domain or a ip address */
-    char *site;
+    char *host;
+
+    /*< The username if specified */
+    char *user;
+
+    /*< The password if specified */
+    char *password;
 
     /*< The port component */
     char *port;
@@ -67,7 +73,7 @@ status_t sstp_set_sndbuf(int sock, int size);
 /*!
  * @brief Split the URL up into components
  */
-status_t sstp_url_split(sstp_url_st **url, const char *path);
+status_t sstp_url_parse(sstp_url_st **url, const char *path);
 
 
 /*!
