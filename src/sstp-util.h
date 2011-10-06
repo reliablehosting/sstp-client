@@ -71,7 +71,7 @@ status_t sstp_set_sndbuf(int sock, int size);
 
 
 /*!
- * @brief Split the URL up into components
+ * @brief Split the URL up into components (non-rfc complient) 
  */
 status_t sstp_url_parse(sstp_url_st **url, const char *path);
 
@@ -92,5 +92,12 @@ const char *sstp_norm_time(unsigned long t, char *buf, int len);
  * @brief Free the url structure
  */ 
 void sstp_url_free(sstp_url_st *url);
+
+
+/*!
+ * @brief Convert sockaddr structure to a string
+ */
+const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len);
+
 
 #endif

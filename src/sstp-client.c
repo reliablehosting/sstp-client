@@ -366,6 +366,7 @@ done:
  */
 static status_t sstp_client_lookup(sstp_url_st *uri, sstp_peer_st *peer)
 {
+    char ipaddr[INET6_ADDRSTRLEN];
     status_t status    = SSTP_FAIL;
     const char *service= NULL;
     addrinfo_st *list  = NULL;
@@ -396,6 +397,9 @@ static status_t sstp_client_lookup(sstp_url_st *uri, sstp_peer_st *peer)
     strncpy(peer->name, list->ai_canonname, sizeof(peer->name));
     memcpy(&peer->addr, list->ai_addr, sizeof(peer->addr));
     peer->alen = list->ai_addrlen;
+
+    log_info("Resolved %s to %s", peer->name, 
+        sstp_ipaddr(&peer->addr, ipaddr, sizeof(ipaddr)))
 
     /* Success! */
     status = SSTP_OKAY;

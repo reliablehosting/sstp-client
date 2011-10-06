@@ -21,6 +21,7 @@
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -239,6 +240,41 @@ const char *sstp_norm_time(unsigned long t, char *buf, int len)
 
     snprintf(buf, len, "%lu seconds", t);
     return buf;
+}
+
+
+/*!
+ * @brief Convert sockaddr structure to an ip-string
+ */
+const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len)
+{
+    const char *retval = NULL;
+
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+    {
+        struct sockaddr_in *in = (struct sockaddr_in*) addr;
+        if (inet_ntop(AF_INET, &in->sin_addr, buf, len))
+        {
+            retval = buf;
+        }
+        break;
+    }
+    case AF_INET6:
+    {
+        struct sockaddr_in6 *in = (struct sockaddr_in6*) addr;
+        if (inet_ntop(AF_INET6, &in->sin6_addr, buf, len))
+        {
+            retval = buf;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    return retval;
 }
 
 
