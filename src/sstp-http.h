@@ -25,7 +25,19 @@
 #define __SSTP_HTTP_H__
 
 /*! The default path to invoke the SSTP API */
-#define SSTP_HTTP_DFLT_PATH     "/sra_{BA195980-CD49-458b-9E23-C84EE0ADCD75}/"
+#define SSTP_HTTP_DFLT_PATH         \
+    "/sra_{BA195980-CD49-458b-9E23-C84EE0ADCD75}/"
+
+/*! The format of the HTTP PROXY connect */
+#define SSTP_HTTP_PROXY_CONNECT_FMT \
+    "CONNECT %s:443 HTTP/1.1\r\n"   \
+    "SSTPVERSION: 1.0\r\n"          \
+    "Connection: keep-alive\r\n"    \
+    "User-Agent: %s\r\n"
+
+/*! The appended property with user/pass */
+#define SSTP_HTTP_PROXY_AUTH_FMT    \
+    "Proxy-Authorization: %s"
 
 
 /*< Forward declare the http context */
@@ -50,6 +62,19 @@ status_t sstp_http_create(sstp_http_st **http, const char *server,
  * @brief Perform a SSTP handshake
  */
 status_t sstp_http_handshake(sstp_http_st *http, sstp_stream_st *stream);
+
+
+/*!
+ * @brief Perform the Proxy connect
+ */
+status_t sstp_http_proxy(sstp_http_st *http, sstp_stream_st *stream);
+
+
+/*!
+ * @brief Set the credentials
+ */
+void sstp_http_setcreds(sstp_http_st *http, const char *user,
+        const char *password);
 
 
 /*! 

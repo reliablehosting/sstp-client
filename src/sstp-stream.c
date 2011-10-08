@@ -186,6 +186,25 @@ static void sstp_channel_setup(sstp_stream_st *ctx, sstp_channel_st *ch,
 }
 
 
+static void sstp_channel_disconnect(sstp_channel_st *ch)
+{
+    if (ch->sock > 0)
+    {
+        close(ch->sock);
+        ch->sock = -1;
+    }
+
+    if (ch->ev_event)
+    {
+        event_del(ch->ev_event);
+        event_free(ch->ev_event);
+        ch->ev_event = NULL;
+    }
+
+    return;
+}
+
+
 status_t sstp_get_cert_hash(sstp_stream_st *ctx, int proto, 
     unsigned char *hash, int hlen)
 {
@@ -298,6 +317,36 @@ status_t sstp_stream_recv_http(sstp_stream_st *ctx, sstp_buff_st *buf,
         sstp_complete_fn complete, void *arg, int timeout)
 {
     return SSTP_NOTIMPL;
+}
+
+
+status_t sstp_stream_recv_plain(sstp_stream_st *ctx, sstp_buff_st *buf, 
+        sstp_complete_fn complete, void *arg, int timeout)
+{
+    sstp_channel_st *ch = &ctx->recv;
+    status_t status = SSTP_FAIL;
+    int ret = 0;
+
+    /* Save the arguments in case of callback */
+    sstp_channel_setup(ctx, ch, buf, timeout, complete, arg);
+    ctx->recv_cb = sstp_stream_recv_plain;
+    
+    /* Receive data */
+    ret = recv(ch->sock, buf->data + buf->off, buf->max - buf->off, 0);
+    if (ret <= 0)
+    {
+        log_err("Unrecoverable socket error, %d", errno);
+        goto done;
+    }
+
+    buf->off += ret;
+
+    /* Success */
+    status = SSTP_OKAY;
+
+done:
+    
+    return status;
 }
 
 
@@ -581,6 +630,83 @@ done:
 }
 #endif
 
+/*!
+ * @brief Continue the send operation
+ */
+static void sstp_send_cont_plain(int sock, short event, 
+        sstp_stream_st *ctx)
+{
+    sstp_channel_st *ch = &ctx->send;
+    int ret = 0;
+
+    /* Retry the send operation, better luck this time */
+    ret = sstp_stream_send_plain(ctx, ch->buf, ch->complete, ch->arg, 
+            ch->tout.tv_sec);
+    switch (ret)
+    {
+    case SSTP_FAIL:
+    case SSTP_OKAY:
+
+        /* Notify the caller of the status */
+        ch->complete(ctx, ch->buf, ch->arg, ret);
+        break;
+
+    case SSTP_INPROG:
+
+        /* This state is already handled */
+        break;
+    }
+}
+
+
+status_t sstp_stream_send_plain(sstp_stream_st *stream, sstp_buff_st *buf,
+    sstp_complete_fn complete, void *arg, int timeout)
+{
+    sstp_channel_st *ch = &stream->send;
+    status_t retval = SSTP_FAIL;
+    int ret = 0;
+
+    /* Non-blocking send */
+    ret = send(ch->sock, buf->data + buf->off,
+            buf->len - buf->off, 0);
+    if (ret <= 0)
+    {
+        log_err("Unrecoverable socket error, %d", errno);
+        goto done;
+    }
+
+    /* Did we complete the write */
+    buf->off += ret;
+    if (buf->off < buf->len)
+    {
+        /* Update the event */
+        event_set(ch->ev_event, ch->sock, EV_WRITE | EV_TIMEOUT,
+                (event_fn) sstp_send_cont_plain, stream);
+
+        /* Update the event base */
+        event_base_set(stream->ev_base, ch->ev_event);
+
+        /* Add the event */
+        ret = event_add(ch->ev_event, &ch->tout);
+        if (ret != 0)
+        {
+            log_err("Could not add new event");
+            retval = SSTP_FAIL;
+        }
+
+        /* Send in progress */
+        retval = SSTP_INPROG;
+        goto done;
+    }
+
+    /* Success */
+    retval = SSTP_OKAY;
+
+done:
+
+    return retval;
+}
+
 
 status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     sstp_complete_fn complete, void *arg, int timeout)
@@ -646,7 +772,6 @@ done:
     }
 
     return (status);
-
 }
 
 
@@ -818,19 +943,11 @@ status_t sstp_stream_destroy(sstp_stream_st *stream)
     SSL_free(stream->ssl);
     stream->ssl = NULL;
 
-    /* Free the send event */
-    if (stream->send.ev_event)
-    {
-        event_del(stream->send.ev_event);
-        event_free(stream->send.ev_event);
-    }
+    /* Disconnect the send channel */
+    sstp_channel_disconnect(&stream->send);
 
-    /* Free the receive event */
-    if (stream->recv.ev_event)
-    {
-        event_del(stream->recv.ev_event);
-        event_free(stream->recv.ev_event);
-    }
+    /* Disconnect the receive channel */
+    sstp_channel_disconnect(&stream->recv);
 
     /* Free the stream */
     free(stream);

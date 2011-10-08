@@ -124,6 +124,20 @@ status_t sstp_stream_send(sstp_stream_st *client, sstp_buff_st *buf,
 
 
 /*!
+ * @brief Send data on a plain text socket
+ */
+status_t sstp_stream_send_plain(sstp_stream_st *stream, sstp_buff_st *buf,
+    sstp_complete_fn complete, void *arg, int timeout);
+
+
+/*!
+ * @brief Perform a plain text receive
+ */
+status_t sstp_stream_recv_plain(sstp_stream_st *ctx, sstp_buff_st *buf, 
+        sstp_complete_fn complete, void *arg, int timeout);
+
+
+/*!
  * @brief Connect a SSL socket using non-blocking I/O
  */
 status_t sstp_stream_connect(sstp_stream_st *client, struct sockaddr *addr,

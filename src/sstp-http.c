@@ -67,7 +67,21 @@ struct sstp_http
 
     /*! The server / client mode */
     int mode;
+
+    /*! The username */
+    char *user;
+
+    /*! The password */
+    char *pass;
 };
+
+
+/*!
+ * @brief Called when receive of the HTTP PROXY data is complete
+ */
+static void sstp_recv_proxy_complete(sstp_stream_st *client, 
+    sstp_buff_st *buf, void *ctx, status_t status);
+
 
 #if 0
 /*!
@@ -139,6 +153,16 @@ void sstp_http_free(sstp_http_st *http)
     if (http->buf)
     {
         sstp_buff_destroy(http->buf);
+    }
+
+    if (http->pass)
+    {
+        free(http->pass);
+    }
+
+    if (http->user)
+    {
+        free(http->user);
     }
 
     /* Free the HTTP request */
@@ -221,6 +245,20 @@ static void sstp_http_send_complete(sstp_stream_st *stream, sstp_buff_st *buf,
 }
 
 
+static void sstp_http_send_proxy_complete(sstp_stream_st *stream, sstp_buff_st *buf, 
+        sstp_http_st *http, status_t result)
+{
+    /* Check the result */
+    if (SSTP_OKAY != result)
+    {
+        http->done_cb(http->uarg, SSTP_FAIL);
+    }
+
+    /* Setup a receiver for HTTP messages */
+    sstp_stream_setrecv(stream, sstp_stream_recv_plain, http->buf,
+            (sstp_complete_fn) sstp_recv_proxy_complete, http, 60);
+}
+
 /*! 
  * @brief Send the client hello to the server
  *
@@ -301,4 +339,159 @@ status_t sstp_http_handshake(sstp_http_st *http, sstp_stream_st *stream)
     return ret;
 }
 
+
+/*!
+ * @brief Perform Basic authentication for now. Support digest in the 
+ *  future.
+ */
+static const char *sstp_proxy_basicauth(const char *user, 
+        const char *pass, char *buf, int size)
+{
+    EVP_ENCODE_CTX ctx;
+    int tot = 0;
+    int len = 0;
+    char out[255];
+
+    EVP_EncodeInit  (&ctx);
+    EVP_EncodeUpdate(&ctx, out + tot, &len, user, strlen(user));
+    tot += len;
+    EVP_EncodeUpdate(&ctx, out + tot, &len, ":", 1);
+    tot += len;
+    EVP_EncodeUpdate(&ctx, out + tot, &len, pass, strlen(pass));
+    tot += len;
+    EVP_EncodeFinal (&ctx, out + tot, &len);
+    tot += len;
+
+    snprintf(buf, size, "Basic %s", out);
+}
+
+
+/*!
+ * @brief Update with the credentials
+ */
+void sstp_http_setcreds(sstp_http_st *http, const char *user,
+        const char *pass)
+{
+    http->user = strdup(user);
+    http->pass = strdup(pass);
+}
+
+
+/*!
+ * @brief Called when receive is complete from the proxy.
+ */
+static void sstp_recv_proxy_complete(sstp_stream_st *client, 
+    sstp_buff_st *buf, void *ctx, status_t status)
+{
+    sstp_http_st *http = (sstp_http_st*) ctx;
+    http_header_st array[15];
+    http_header_st *entry;
+    char auth[255];
+    int attr  = 15;
+    int code  = 0;
+    int ret   = 0;
+
+    /* TODO: Handle timeout, error, etc */
+    if (SSTP_OKAY != status)
+    {
+        goto done;
+    }
+
+    /* Get the HTTP headers */
+    ret = sstp_http_get(buf, &code, &attr, array);
+    if (SSTP_OKAY != ret)
+    {
+        log_err("Could not parse the HTTP headers");
+        goto done;
+    }
+    
+    switch (code)
+    {
+    case 200:
+        status = SSTP_OKAY;
+        break;
+
+    case 407:
+        
+        /* Get the Content-Length if specified */
+        entry = sstp_http_get_header("Proxy-Authenticate", attr, array);
+        if (strncasecmp(entry->value, "Basic", 5))
+        {
+            log_err("Received unsupported authentication: %s", 
+                    entry->value);
+            status = SSTP_FAIL;
+            break;
+        }
+
+        /* Let the layer above provide user/pass */
+        status = SSTP_AUTHENTICATE;
+        break;
+
+    default:
+        status = SSTP_FAIL;
+        break;
+    }
+
+done:
+
+    http->done_cb(http->uarg, status);
+}
+
+
+/*!
+ * @brief Called when we want to initiate a connection to the proxy
+ */
+status_t sstp_http_proxy(sstp_http_st *http, sstp_stream_st *stream)
+{
+    status_t ret = SSTP_FAIL;
+
+    /* Reset buffer before use */
+    sstp_buff_reset(http->buf);
+
+    /* Format the buffer */
+    ret = sstp_buff_print(http->buf, SSTP_HTTP_PROXY_CONNECT_FMT,
+            http->server, PACKAGE);
+    if (SSTP_OKAY != ret)
+    {
+        goto done;
+    }
+
+    /* Username and password */
+    if (http->user && http->pass)
+    {
+        char auth[255];
+
+        /* Get the basic auth */
+        sstp_proxy_basicauth(http->user, http->pass, auth, sizeof(auth));
+
+        /* Format the buffer */
+        ret = sstp_buff_print(http->buf, SSTP_HTTP_PROXY_AUTH_FMT, auth);
+        if (SSTP_OKAY != ret)
+        {
+            goto done;
+        }
+    }
+
+    /* Add the termination to the HTTP header */
+    ret = sstp_buff_print(http->buf, "\r\n");
+    if (SSTP_OKAY != ret)
+    {
+        goto done;
+    }
+
+    /* Send the HTTP header */
+    ret = sstp_stream_send_plain(stream, http->buf, (sstp_complete_fn)
+                sstp_http_send_proxy_complete, http, 10);
+    if (SSTP_OKAY != ret)
+    {
+        goto done;
+    }
+
+    /* Configure the receiver */
+    sstp_stream_setrecv(stream, sstp_stream_recv_plain, http->buf,
+            (sstp_complete_fn) sstp_recv_proxy_complete, http, 60);
+done:
+    
+    return ret;
+}
 

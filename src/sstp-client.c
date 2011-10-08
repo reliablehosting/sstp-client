@@ -38,6 +38,12 @@ static sstp_client_st client;
 
 typedef void (*sstp_client_cb)(sstp_stream_st*, sstp_buff_st*, sstp_client_st*, status_t);
 
+/*!
+ * @brief Called when proxy is connected
+ */
+static void sstp_client_proxy_connected(sstp_stream_st *stream, sstp_buff_st *buf,
+        sstp_client_st *client, status_t status);
+
 
 static void sstp_client_event_cb(sstp_client_st *client, int ret)
 {
@@ -199,7 +205,7 @@ static void sstp_client_http_done(sstp_client_st *client, int status)
     }
 
     /* Verify the server certificate */
-    status = sstp_verify_cert(client->stream, client->host.name, opts);
+    status = sstp_verify_cert(client->stream, client->option.server, opts);
     if (SSTP_OKAY != status)
     {
         sstp_die("Verification of server certificate failed", -2);
@@ -257,10 +263,111 @@ static void sstp_client_connected(sstp_stream_st *stream, sstp_buff_st *buf,
 }
 
 
+/*!
+ * @brief Called on completion of the proxy request
+ */
+static void sstp_client_proxy_done(sstp_client_st *client, int status)
+{
+    int ret = 0;
+
+    switch (status)
+    {
+    /* Proxy asked us to authenticate */
+    case SSTP_AUTHENTICATE:
+        
+        /* Close the connection, re-connect and use the credentials */
+        sstp_stream_destroy(client->stream);
+
+        /* Create the SSL I/O streams */
+        ret = sstp_stream_create(&client->stream, client->ev_base, 
+                client->ssl_ctx);
+        if (SSTP_OKAY != ret)
+        {
+            sstp_die("Could not create I/O stream", -1);
+        }
+
+        /* Proxy asked us to authenticate, but we have no password */
+        if (!client->url->password || !client->url->password)
+        {
+            sstp_die("Proxy asked for credentials, none provided", -1);
+        }
+
+        /* Update with username and password */
+        sstp_http_setcreds(client->http, client->url->user,
+                client->url->password);
+
+        /* Reconnect to the proxy (now with credentials set) */
+        ret = sstp_stream_connect(client->stream, &client->host.addr, client->host.alen,
+                (sstp_complete_fn) sstp_client_proxy_connected, client, 10);
+        break;
+
+    case SSTP_OKAY:
+
+        log_info("Connected to %s via proxy server", 
+                client->option.server);
+
+        /* Re-initialize the HTTP context */
+        sstp_http_free(client->http);
+
+        /* Create the HTTP handshake context */
+        ret = sstp_http_create(&client->http, client->option.server, (sstp_http_done_fn) 
+                sstp_client_http_done, client, SSTP_MODE_CLIENT);
+        if (SSTP_OKAY != ret)
+        {
+            sstp_die("Could not configure HTTP handshake with server", -1);
+        }
+        
+        /* Perform the HTTPS/SSTP handshake */
+        ret = sstp_http_handshake(client->http, client->stream);
+        if (SSTP_FAIL == ret)
+        {
+            sstp_die("Could not perform HTTP handshake with server", -1);
+        }
+
+        break;
+
+    default:
+
+        sstp_die("Could not connect to proxy server", -1);
+        break;
+    }
+
+    return;
+}
+
+
+/*!
+ * @brief Called when connection to the proxy server is completed
+ */
 static void sstp_client_proxy_connected(sstp_stream_st *stream, sstp_buff_st *buf,
         sstp_client_st *client, status_t status)
 {
-    sstp_die("Not Implemented", -1);
+    int ret = 0;
+
+    if (SSTP_CONNECTED != status)
+    {
+        sstp_die("Could not connect to proxy server", -1);
+    }
+
+    /* Create the HTTP object if one doesn't already exist */
+    if (!client->http) 
+    {
+        ret = sstp_http_create(&client->http, client->option.server,
+            (sstp_http_done_fn) sstp_client_proxy_done, client, SSTP_MODE_CLIENT);
+        if (SSTP_OKAY != ret)
+        {
+            sstp_die("Could not configure HTTP handshake with server", -1);
+        }
+    }
+
+    /* Perform the HTTP handshake with server */
+    ret = sstp_http_proxy(client->http, client->stream);
+    if (SSTP_FAIL == ret)
+    {
+        sstp_die("Could not perform HTTP handshake with server", -1);
+    }
+
+    return;
 }
 
 
