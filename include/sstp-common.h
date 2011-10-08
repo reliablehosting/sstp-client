@@ -51,6 +51,9 @@ typedef enum
     /*!< Operation timed out */
     SSTP_TIMEOUT = 5,
 
+    /*!< Authentication required */
+    SSTP_AUTHENTICATE = 6,
+
 } status_t;
 
 #endif	/* #ifndef __SSTP_COMMON_H__ */
