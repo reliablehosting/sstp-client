@@ -98,14 +98,9 @@ static void sstp_client_pppd_cb(sstp_client_st *client, sstp_pppd_event_t ev)
         uint8_t skey[16];
         uint8_t rkey[16];
 
-        /* Get the password */
-        const char *password = (client->option.have.password) 
-                ? client->option.password 
-                : NULL;
-
         /* Get the MPPE keys */
-        ret = sstp_chap_mppe_get(sstp_pppd_getchap(client->pppd), password, 
-                skey, rkey, 0); 
+        ret = sstp_chap_mppe_get(sstp_pppd_getchap(client->pppd), 
+                client->option.password, skey, rkey, 0); 
         if (SSTP_FAIL == ret)
         {
             return;
@@ -198,8 +193,8 @@ static void sstp_client_http_done(sstp_client_st *client, int status)
 
     /* Set verify options */
     opts = SSTP_VERIFY_NAME;
-    if (client->option.have.ca_cert ||
-        client->option.have.ca_path)
+    if (client->option.ca_cert ||
+        client->option.ca_path)
     {
         opts = SSTP_VERIFY_CERT;
     }
@@ -377,7 +372,7 @@ static void sstp_client_proxy_connected(sstp_stream_st *stream, sstp_buff_st *bu
 static status_t sstp_client_connect(sstp_client_st *client, 
         struct sockaddr *addr, int alen)
 {
-    sstp_client_cb complete_cb = (client->option.have.proxy)
+    sstp_client_cb complete_cb = (client->option.proxy)
             ? sstp_client_proxy_connected
             : sstp_client_connected;
     status_t ret = SSTP_FAIL;
@@ -444,12 +439,11 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
     }
 
     /* Configure the CA-Certificate or Directory */
-    if (opt->have.ca_cert || opt->have.ca_path)
+    if (opt->ca_cert || opt->ca_path)
     {
         /* Look for certificates in the default certificate path */
         status = SSL_CTX_load_verify_locations(client->ssl_ctx, 
-                (opt->have.ca_cert) ? opt->ca_cert : NULL,
-                (opt->have.ca_path) ? opt->ca_path : NULL);
+                opt->ca_cert, opt->ca_path);
         if (status != 1)
         {
             log_err("Could not set default verify location");
@@ -591,6 +585,9 @@ static void sstp_client_free(sstp_client_st *client)
         client->event = NULL;
     }
 
+    /* Free the options */
+    sstp_option_free(&client->option);
+
     /* Free the event base */
     event_base_free(client->ev_base);
 }
@@ -677,7 +674,7 @@ int main(int argc, char *argv[])
 
 #ifndef HAVE_PPP_PLUGIN
     /* In non-plugin mode, username and password must be specified */
-    if (!option.have.password || !option.have.user)
+    if (!option.password || !option.user)
     {
         sstp_die("The password and username must be specified", -1);
     }
@@ -699,7 +696,7 @@ int main(int argc, char *argv[])
     }
 
     /* Connect to the proxy first */
-    if (option.have.proxy)
+    if (option.proxy)
     {
         /* Parse the Proxy URL */
         ret = sstp_url_parse(&client.url, option.proxy);

@@ -121,6 +121,18 @@ static void sstp_print_version(const char *prog)
 
 
 /*!
+ * @brief Scribble on an input argument to avoid having it appear in /proc/self/cmdline
+ */
+static void sstp_scramble(char *arg)
+{
+    while (*arg)
+    {
+        *arg++ = 'x';
+    }
+}
+
+
+/*!
  * @brief Handle the individual options here
  */
 static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int index)
@@ -128,13 +140,11 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
     switch (index)
     {
     case 0:
-        strncpy(ctx->ca_cert, optarg, sizeof(ctx->ca_cert)-1);
-        ctx->have.ca_cert = 1;
+        ctx->ca_cert = strdup(optarg);
         break;
 
     case 1:
-        strncpy(ctx->ca_path, optarg, sizeof(ctx->ca_path)-1);
-        ctx->have.ca_path = 1;
+        ctx->ca_path = strdup(optarg);
         break;
 
     case 2:
@@ -146,8 +156,7 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 4:
-        strncpy(ctx->ipparam, optarg, sizeof(ctx->ipparam));
-        ctx->have.ipparam = 1;
+        ctx->ipparam = strdup(optarg);
         break;
 
     case 5:
@@ -155,18 +164,17 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 6: 
-        strncpy(ctx->password, optarg, sizeof(ctx->password));
-        ctx->have.password = 1;
+        ctx->password = strdup(optarg);
+        sstp_scramble(optarg);
         break;
 
     case 7:
-        strncpy(ctx->proxy, optarg, sizeof(ctx->proxy));
-        ctx->have.proxy = 1;
+        ctx->proxy = strdup(optarg);    // May contain user/pass.
+        sstp_scramble(optarg);
         break;
 
     case 8:
-        strncpy(ctx->user, optarg, sizeof(ctx->user));
-        ctx->have.user = 1;
+        ctx->user = strdup(optarg);
         break;
 
     default:
@@ -175,6 +183,34 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
     }
 
     return;
+}
+
+
+void sstp_option_free(sstp_option_st *ctx)
+{
+    if (ctx->ca_cert)
+        free(ctx->ca_cert);
+
+    if (ctx->ca_path)
+        free(ctx->ca_path);
+
+    if (ctx->server)
+        free(ctx->server);
+
+    if (ctx->ipparam)
+        free(ctx->ipparam);
+
+    if (ctx->password)
+        free(ctx->password);
+
+    if (ctx->proxy)
+        free(ctx->proxy);
+
+    if (ctx->user)
+        free(ctx->user);
+
+    /* Reset the entire structure */
+    memset(ctx, 0, sizeof(sstp_option_st));
 }
 
 
@@ -232,10 +268,9 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
     }
 
     /* If proxy wasn't specified, use the http_proxy environment variable */
-    if (!ctx->have.proxy && getenv("http_proxy"))
+    if (!ctx->proxy && getenv("http_proxy"))
     {
-        strncpy(ctx->proxy, getenv("http_proxy"), sizeof(ctx->proxy));
-        ctx->have.proxy = 1;
+        ctx->proxy = strdup(getenv("http_proxy"));
     }
 
     /* At least one argument is required */
@@ -244,9 +279,14 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         sstp_usage_die(argv[0], -1, "At least one argument is required");
     }
 
+    /* Don't use the plugin as user-name and password is specified */
+    if (ctx->user && ctx->password)
+    {
+        ctx->enable |= SSTP_OPT_NOPLUGIN;
+    }
+
     /* Copy the server argument */
-    strncpy(ctx->server, argv[optind++], sizeof(ctx->server)-1);
-    ctx->have.server = 1;
+    ctx->server = strdup(argv[optind++]);
 
     /* PPPD options to follow */
     ctx->pppdargc = argc - optind;

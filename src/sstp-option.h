@@ -30,6 +30,7 @@
 #define SSTP_OPT_NOLAUNCH       0x0001
 #define SSTP_OPT_NODAEMON       0x0002
 #define SSTP_OPT_DEBUG          0x0004
+#define SSTP_OPT_NOPLUGIN       0x0008
 
 
 /*!
@@ -40,39 +41,26 @@ typedef struct
     /*< The range of options enabled */
     int enable;
 
-    /*! The specific option provided */
-    struct
-    {
-        int server  : 1;
-        int ca_path : 1;
-        int ca_cert : 1;
-        int ipparam : 1;
-        int user    : 1;
-        int proxy   : 1;
-        int password: 1;
-
-    } have;
-
     /*! the CA certificate in PEM format */
-    char ca_cert[SSTP_PATH_MAX];
+    char *ca_cert;
 
     /*! The CA certificate path */
-    char ca_path[SSTP_PATH_MAX];
+    char *ca_path;
 
     /*! The original server string */
-    char server[SSTP_PATH_MAX];
+    char *server;
 
     /*! Unique connection parameter */
-    char ipparam[SSTP_PATH_MAX];
+    char *ipparam;
 
     /*! Password */
-    char password[SSTP_PATH_MAX];
+    char *password;
 
     /*! The proxy URL */
-    char proxy[SSTP_PATH_MAX];
+    char *proxy;
 
     /*! Username */
-    char user[SSTP_PATH_MAX];
+    char *user;
 
     /*! The number of arguments to pppd */
     int pppdargc;
@@ -118,6 +106,18 @@ void sstp_die(const char *message, int code, ...)
  * @return 0 on success (always), or die...
  */
 int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv);
+
+
+/*!
+ * @brief Cleanup the option structure
+ * @param opts      [IN] The option structure
+ * 
+ * @par Note:
+ *  Mostly to report false-positives with valgrind.
+ *
+ * @return (none)
+ */
+void sstp_option_free(sstp_option_st *opts);
 
 
 #endif /* #ifndef __SSTP_OPTION_H__ */

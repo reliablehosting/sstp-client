@@ -423,7 +423,7 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts,
         args[i++] = "38400";
 
         /* If user supplied username and password (insecure) */
-        if (opts->have.password && opts->have.user)
+        if (opts->password && opts->user)
         {
             args[i++] = "user";
             args[i++] = opts->user;
