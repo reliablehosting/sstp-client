@@ -149,7 +149,7 @@ status_t sstp_buff_print(sstp_buff_st *buf, const char *fmt, ...)
 status_t sstp_buff_create(sstp_buff_st **buf, int size)
 {
     /* Allocate the memory */
-    sstp_buff_st *ctx = malloc(sizeof(sstp_buff_st) + size);
+    sstp_buff_st *ctx = calloc(1, sizeof(sstp_buff_st) + size);
     if (!ctx)
     {
         return SSTP_FAIL;

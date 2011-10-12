@@ -524,6 +524,12 @@ void sstp_stream_setrecv(struct sstp_stream *ctx, sstp_recv_fn recv_cb,
         event |= EV_TIMEOUT;
     }
 
+    /* Free the event if it already exist */
+    if (ch->ev_event)
+    {
+        event_free(ch->ev_event);
+    }
+
     /* Setup a receive event */
     ch->ev_event = event_new(ctx->ev_base, ch->sock, event, (event_fn)
             sstp_recv_cont, ctx);
@@ -885,6 +891,12 @@ status_t sstp_stream_connect(sstp_stream_st *stream, struct sockaddr *addr,
 
         /* Setup the send channel */
         sstp_channel_setup(stream, ch, NULL, timeout, complete, arg);
+
+        /* If the event already exist, free it */
+        if (ch->ev_event)
+        {
+            event_free(ch->ev_event);
+        }
 
         /* Setup the callback */
         ch->ev_event = event_new(stream->ev_base, ch->sock, EV_WRITE | EV_TIMEOUT,
