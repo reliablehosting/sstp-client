@@ -207,7 +207,7 @@ const char *sstp_norm_data(unsigned long long count, char *buf, int len)
     char v [] = { 'K', 'M', 'G', 'T' };
     int i = 0;
 
-    if (count < 1024) 
+    if (count <= 1024) 
     {
         snprintf(buf, len, "%llu bytes", count);
         return buf;
@@ -219,7 +219,7 @@ const char *sstp_norm_data(unsigned long long count, char *buf, int len)
         i++;
     }
 
-    snprintf(buf, len, "%.02f %cb", b, v[i]);
+    snprintf(buf, len, "%.02f %cb", b, v[i-1]);
     return buf;
 }
 
