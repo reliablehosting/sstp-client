@@ -84,9 +84,9 @@ static void sstp_client_pppd_cb(sstp_client_st *client, sstp_pppd_event_t ev)
     switch (ev)
     {
     case SSTP_PPP_DOWN:
-	log_err("PPPd terminated");
-	//sstp_state_disconnect(client->state);
-	event_base_loopbreak(client->ev_base);
+        log_err("PPPd terminated");
+        //sstp_state_disconnect(client->state);
+        event_base_loopbreak(client->ev_base);
         break;
 
     case SSTP_PPP_UP:
@@ -163,7 +163,21 @@ static void sstp_client_state_cb(sstp_client_st *client, sstp_state_t event)
         break;
     
     case SSTP_CALL_ESTABLISHED:
+
         log_info("Connection Established");
+        
+        /* Enter the privilege separation directory */
+        if (getuid() == 0)
+        {
+            ret = sstp_sandbox(client->option.priv_dir, 
+                    client->option.priv_user, 
+                    client->option.priv_group);
+            if (ret != 0) 
+            {
+                log_warn("Could not enter privilege directory");
+            }
+        }
+
         break;
 
     case SSTP_CALL_ABORT:
@@ -659,6 +673,7 @@ int main(int argc, char *argv[])
         sstp_die("Could not initialize logging", -1);
     }
 
+    /* Setup signal handling */
     ret = sstp_signal_init();
     if (SSTP_OKAY != ret)
     {
@@ -672,11 +687,34 @@ int main(int argc, char *argv[])
         sstp_die("Could not parse input arguments", -1);
     }
 
+    /* Check if we can access the runtime directory */
+    if (access(SSTP_RUNTIME_DIR, F_OK))
+    {
+        ret = sstp_create_dir(SSTP_RUNTIME_DIR, option.priv_user, 
+                option.priv_group, 0755);
+        if (ret != 0)
+        {
+            log_warn("Could not access or create runtime directory");
+        }
+    }
+
+    /* Create the privilege separation directory */
+    if (option.priv_dir && access(option.priv_dir, F_OK))
+    {
+        ret = sstp_create_dir(option.priv_dir, option.priv_user,
+                option.priv_group, 0700);
+        if (ret != 0)
+        {
+            log_warn("Could not access or create privilege separation directory, %s",
+                    option.priv_dir);
+        }
+    }
+
 #ifndef HAVE_PPP_PLUGIN
     /* In non-plugin mode, username and password must be specified */
     if (!option.password || !option.user)
     {
-        sstp_die("The password and username must be specified", -1);
+        sstp_die("The username and password must be specified", -1);
     }
 #endif /* #ifndef HAVE_PPP_PLUGIN */
 
@@ -688,11 +726,14 @@ int main(int argc, char *argv[])
     }
 
     /* Create the event notification callback */
-    ret = sstp_event_create(&client.event, &client.option, client.ev_base,
-        (sstp_event_fn) sstp_client_event_cb, &client);
-    if (SSTP_OKAY != ret)
+    if (!(option.enable & SSTP_OPT_NOPLUGIN))
     {
-        sstp_die("Could not setup notification", -1);
+        ret = sstp_event_create(&client.event, &client.option, client.ev_base,
+            (sstp_event_fn) sstp_client_event_cb, &client);
+        if (SSTP_OKAY != ret)
+        {
+            sstp_die("Could not setup notification", -1);
+        }
     }
 
     /* Connect to the proxy first */

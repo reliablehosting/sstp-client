@@ -59,6 +59,15 @@ typedef struct
     /*! The proxy URL */
     char *proxy;
 
+    /*! The privilege separation user */
+    char *priv_user;
+    
+    /*! The privilege separation group */
+    char *priv_group;
+
+    /*! The privilege separation directory */
+    char *priv_dir;
+
     /*! Username */
     char *user;
 

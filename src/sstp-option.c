@@ -83,9 +83,12 @@ void sstp_usage_die(const char *prog, int code,
     printf("  --help                   Display this menu\n");
     printf("  --debug                  Enable debug mode\n");
     printf("  --nolaunchpppd           Don't start pppd, for use with pty option\n");
-    printf("  --user                   Username\n");
     printf("  --password               Password\n");
+    printf("  --priv-user              The user to run as\n");
+    printf("  --priv-group             The group to run as\n");
+    printf("  --priv-dir               The privilege separation directory\n");
     printf("  --proxy                  Proxy URL\n");
+    printf("  --user                   Username\n");
     printf("  --version                Display the version information\n\n");
 
     /* Additional log usage */
@@ -169,11 +172,23 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 7:
+        ctx->priv_user = strdup(optarg);
+        break;
+
+    case 8:
+        ctx->priv_group = strdup(optarg);
+        break;
+
+    case 9:
+        ctx->priv_dir = strdup(optarg);
+        break;
+
+    case 10:
         ctx->proxy = strdup(optarg);    // May contain user/pass.
         sstp_scramble(optarg);
         break;
 
-    case 8:
+    case 11:
         ctx->user = strdup(optarg);
         break;
 
@@ -203,6 +218,15 @@ void sstp_option_free(sstp_option_st *ctx)
     if (ctx->password)
         free(ctx->password);
 
+    if (ctx->priv_user)
+        free(ctx->priv_user);
+
+    if (ctx->priv_group)
+        free(ctx->priv_group);
+
+    if (ctx->priv_dir)
+        free(ctx->priv_dir);
+
     if (ctx->proxy)
         free(ctx->proxy);
 
@@ -219,14 +243,17 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
     int option_index = 0;
     static struct option option_long[] = 
     {
-        { "ca-cert",        required_argument, NULL,  0  },
+        { "ca-cert",        required_argument, NULL,  0  }, /* 0 */
         { "ca-path",        required_argument, NULL,  0  },
         { "debug",          no_argument,       NULL,  0  },
         { "help",           no_argument,       NULL,  0  },
         { "ipparam",        required_argument, NULL,  0  },
-        { "nolaunchpppd",   no_argument,       NULL,  0  },
+        { "nolaunchpppd",   no_argument,       NULL,  0  }, /* 5 */
         { "password",       required_argument, NULL,  0  },
-        { "proxy",          required_argument, NULL,  0  },
+        { "priv-user",      required_argument, NULL,  0  },
+        { "priv-group",     required_argument, NULL,  0  },
+        { "priv-dir",       required_argument, NULL,  0  },
+        { "proxy",          required_argument, NULL,  0  }, /* 10 */
         { "user",           required_argument, NULL,  0  },
         { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
@@ -271,6 +298,24 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
     if (!ctx->proxy && getenv("http_proxy"))
     {
         ctx->proxy = strdup(getenv("http_proxy"));
+    }
+
+    /* If not specified, use the default value */
+    if (!ctx->priv_user)
+    {
+        ctx->priv_user = strdup(SSTP_USER);
+    }
+
+    /* If not specified, use the default value */
+    if (!ctx->priv_group)
+    {
+        ctx->priv_group = strdup(SSTP_GROUP);
+    }
+
+    /* If not specified, use the default value */
+    if (!ctx->priv_dir)
+    {
+        ctx->priv_dir = strdup(SSTP_RUNTIME_DIR);
     }
 
     /* At least one argument is required */

@@ -270,13 +270,14 @@ status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0)
     {
+        log_err("Could not create unix socket, %m (%d)", errno);
         goto done;
     }
 
     /* Initialize the address */
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    snprintf(addr.sun_path, sizeof(addr.sun_path), "%ssstpc-%s", SSTP_TMP_PATH, 
+    snprintf(addr.sun_path, sizeof(addr.sun_path), "%s/sstpc-%s", SSTP_RUNTIME_DIR, 
         (opts->ipparam) ? opts->ipparam : SSTP_SOCK_NAME);
 
     /* Make sure we remove any existing file first */

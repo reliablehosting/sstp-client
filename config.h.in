@@ -161,6 +161,15 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* The sstpc privilege drop group */
+#undef SSTP_GROUP
+
+/* "The runtime directory for sstpc" */
+#undef SSTP_RUNTIME_DIR
+
+/* The sstpc privilege drop user */
+#undef SSTP_USER
+
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at runtime.

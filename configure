@@ -751,6 +751,8 @@ ALLOCA
 PPPD_PLUGIN_DIR
 WITH_PPP_PLUGIN_FALSE
 WITH_PPP_PLUGIN_TRUE
+enable_group
+enable_user
 OPENSSL_LDFLAGS
 OPENSSL_LIBS
 OPENSSL_INCLUDES
@@ -879,6 +881,8 @@ with_gnu_ld
 enable_libtool_lock
 with_libevent
 with_openssl
+enable_user
+enable_group
 enable_ppp_plugin
 with_pppd_plugin_dir
 '
@@ -1525,6 +1529,10 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --enable-user=user      Drop privileges after start to this user (default:
+                          sstpc)
+  --enable-group=group    Drop privileges after start to this group (default:
+                          sstpc)
   --disable-ppp-plugin    disable PPP Plugin support
 
 Optional Packages:
@@ -4765,13 +4773,13 @@ if test "${lt_cv_nm_interface+set}" = set; then :
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4768: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4776: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4771: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4779: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4774: output\"" >&5)
+  (eval echo "\"\$as_me:4782: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -5977,7 +5985,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5980 "configure"' > conftest.$ac_ext
+  echo '#line 5988 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7506,11 +7514,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7509: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7517: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7513: \$? = $ac_status" >&5
+   echo "$as_me:7521: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7845,11 +7853,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7848: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7856: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7852: \$? = $ac_status" >&5
+   echo "$as_me:7860: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7950,11 +7958,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7953: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7961: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7957: \$? = $ac_status" >&5
+   echo "$as_me:7965: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8005,11 +8013,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8008: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8016: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8012: \$? = $ac_status" >&5
+   echo "$as_me:8020: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10389,7 +10397,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10392 "configure"
+#line 10400 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10485,7 +10493,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10488 "configure"
+#line 10496 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11252,6 +11260,52 @@ _ACEOF
   LIBS="-lutil $LIBS"
 
 fi
+
+
+
+# Specify privilege separation user
+# Check whether --enable-user was given.
+if test "${enable_user+set}" = set; then :
+  enableval=$enable_user;
+fi
+
+if  test "${enable_user}" = "yes" || test x"${enable_user}" = x"" ; then :
+  enable_user="sstpc"
+else
+  enable_user="root"
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define SSTP_USER "${enable_user}"
+_ACEOF
+
+
+
+# Specify privilege separation group
+# Check whether --enable-group was given.
+if test "${enable_group+set}" = set; then :
+  enableval=$enable_group;
+fi
+
+if  test "${enable_group}" = "yes" || test x"${enable_group}" = x"" ; then :
+  enable_group="sstpc"
+else
+  enable_group="root"
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define SSTP_GROUP "${enable_group}"
+_ACEOF
+
+
+
+# Specify runtime directory
+
+cat >>confdefs.h <<_ACEOF
+#define SSTP_RUNTIME_DIR "$localstatedir"
+_ACEOF
 
 
 

@@ -1,8 +1,20 @@
-SSTP Client:
+SSTP Client (1.1):
+* Hide command line password
+  - Execute pppd with a script instead of cmdline arguments
+    This might be hard todo in terms of cleaning up the temporary file (or store it in /tmp)?.
+  - make this feature enabled only if configure says so?
+* Improve the compiler warning flags in configure.ac
+* Add option to ignore certificate warnings.
+
+* Network Manager Plugin support
+ - Wait for Ubuntu, et al. to update their NM version
+ - Need to prevent nameresolve before invoking sstpc
+ - Add proxy support
+ - Additional options to limit the crypto?
+
+
 * HTTP Proxy support
- - Digest: User / Password
-* Hide command line user/pass
-* Use /var/run/ instead of /tmp for the uds socket
+  - Digest: User / Password
 * Automate the unit-tests
  - Autotools to help do this 'make check'
 * Improve Certificate Verification
@@ -10,15 +22,19 @@ SSTP Client:
  - Restrict certain cipher suites.
 * Support CRL
  - Look at stunnel project
-* Tweak the sstp-option, use pointers, not memory.
 * SSTP Server Support
 * Async DNS lookup?
-
-* Network Manager Plugin support
- - Wait for Ubuntu, et al. to update their NM version
 
 Doxygen comments throughout the project
 
 Coding style document
   - Tab Width: 4
   - Spaces no tabs!
+
+
+
+Run as regular user:
+  - Specify password, then no need to change user?
+
+Only enable new user when specified via configure, or by command line. 
+
