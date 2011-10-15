@@ -360,6 +360,12 @@ int sstp_sandbox(const char *path, const char *user, const char *group)
     /* Change the root directory */
     if (path)
     {
+        if (chdir(path) != 0)
+        {
+            log_warn("Could not change working directory, %m (%d)", errno);
+            goto done;
+        }
+
         if (chroot(path) != 0)
         {
             log_warn("Could not change root directory, %m (%d)", errno);
