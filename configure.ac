@@ -1,6 +1,6 @@
 AC_PREREQ([2.67])
 AC_INIT([sstp-client], 
-        [1.0.1], 
+        [1.0.2], 
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -68,7 +68,7 @@ AC_DEFINE_UNQUOTED(SSTP_GROUP, "${enable_group}", The sstpc privilege drop group
 
 
 # Specify runtime directory
-AC_DEFINE_UNQUOTED(SSTP_RUNTIME_DIR, ["$localstatedir"], ["The runtime directory for sstpc"])
+AC_DEFINE_UNQUOTED(SSTP_RUNTIME_DIR, ["$localstatedir/run/sstpc"], ["The runtime directory for sstpc"])
 
 
 # Check to see if we enabled PPP plug-in support (default:yes)
