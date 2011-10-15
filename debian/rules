@@ -1,5 +1,19 @@
 #!/usr/bin/make -f
 
+configure:
+    
+    ./configure \
+        --prefix=/usr \
+        --sysconfdir=/etc \
+        --localstatedir=/var \
+        --includedir=${prefix}/include \
+        --libexecdir=${prefix}/lib/sstp-client \
+        --mandir=${prefix}/share/man \
+        --infodir=${prefix}/share/info \
+        --disable-dependency-tracking \
+        --enable-user sstpc \
+        --enable-group sstpc
+
 %:
 	dh $@
 
