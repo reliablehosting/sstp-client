@@ -1,10 +1,4 @@
-SSTP Client (1.1):
-* Hide command line password
-  - Execute pppd with a script instead of cmdline arguments
-    This might be hard todo in terms of cleaning up the temporary file (or store it in /tmp)?.
-  - make this feature enabled only if configure says so?
-* Improve the compiler warning flags in configure.ac
-* Add option to ignore certificate warnings.
+SSTP Client (1.0.2):
 
 * Network Manager Plugin support
  - Wait for Ubuntu, et al. to update their NM version
@@ -12,7 +6,7 @@ SSTP Client (1.1):
  - Add proxy support
  - Additional options to limit the crypto?
 
-
+Future Release
 * HTTP Proxy support
   - Digest: User / Password
 * Automate the unit-tests
@@ -30,11 +24,4 @@ Doxygen comments throughout the project
 Coding style document
   - Tab Width: 4
   - Spaces no tabs!
-
-
-
-Run as regular user:
-  - Specify password, then no need to change user?
-
-Only enable new user when specified via configure, or by command line. 
 
