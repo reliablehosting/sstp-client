@@ -22,12 +22,15 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <arpa/inet.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 #include <unistd.h>
 
 #include "sstp-private.h"
@@ -273,6 +276,163 @@ const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len)
     default:
         break;
     }
+
+    return retval;
+}
+
+
+int sstp_get_uid(const char *name)
+{
+    struct passwd pwd;
+    struct passwd *res = NULL;
+    char *buff = NULL;
+    int blen = 0;
+
+    blen = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (blen == -1)
+    {
+        blen = 1024;
+    }
+
+    /* Allocate the memory */
+    buff = alloca(blen);
+    if (!buff)
+    {
+        return -1;
+    }
+
+    /* Get the password entry */
+    if (!getpwnam_r(name, &pwd, buff, blen, &res) && res)
+    {
+        return pwd.pw_uid;
+    }
+
+    return -1;
+}
+
+
+int sstp_get_gid(const char *name)
+{
+    struct group grp;
+    struct group *res = NULL;
+    char *buff = NULL;
+    int blen = 0;
+
+    blen = sysconf(_SC_GETGR_R_SIZE_MAX);
+    if (blen == -1)
+    {
+        blen = 1024;
+    }
+
+    /* Allocate the memory */
+    buff = alloca(blen);
+    if (!buff)
+    {
+        return -1;
+    }
+
+    /* Get the password entry */
+    if (!getgrnam_r(name, &grp, buff, blen, &res) && res)
+    {
+        return grp.gr_gid;
+    }
+
+    return -1;
+}
+
+
+int sstp_sandbox(const char *path, const char *user, const char *group)
+{
+    int gid = -1;
+    int uid = -1;
+    int retval = -1;
+
+    if (user)
+    {
+        uid = sstp_get_uid(user);
+    }
+    
+    if (group)
+    {
+        gid = sstp_get_gid(group);
+    }
+
+    /* Change the root directory */
+    if (path)
+    {
+        if (chroot(path) != 0)
+        {
+            log_warn("Could not change root directory, %m (%d)", errno);
+            goto done;
+        }
+    }
+
+    /* Set the group id (before setting user id) */
+    if (gid >= 0 && gid != getgid())
+    {
+        if (setgid(gid) != 0)
+        {
+            log_warn("Could not set process group id, %m (%d)", errno);
+            goto done;
+        }
+    }
+
+    /* Setting the user id */
+    if (uid >= 0 && uid != getuid())
+    {
+        if (setuid(uid) != 0)
+        {
+            log_warn("Could not set process user id, %m (%d)", errno);
+            goto done;
+        }
+    }
+
+    retval = 0;
+
+done:
+    
+    return (retval);
+}
+
+
+int sstp_create_dir(const char *path, const char *user, const char *group, mode_t mode)
+{
+    int ret = -1;
+    int gid = -1;
+    int uid = -1;
+    int retval = (-1);
+
+    /* Create the directory if it doesn't exists */
+    ret = mkdir(path, mode);
+    if (ret != 0 && errno != EEXIST)
+    {
+        log_err("Could not create directory: %s, %m (%d)", path, errno);
+        goto done;
+    }
+    
+    /* Get the user */
+    if (user)
+    {
+        uid = sstp_get_uid(user);
+    }
+
+    /* Get the group */
+    if (group)
+    {
+        gid = sstp_get_gid(group);
+    }
+
+    /* Change user/group permissions */
+    ret = chown(path, uid, gid);
+    if (ret != 0)
+    {
+        log_warn("Could not change permissions on %s, %m (%d)", path, errno);
+    }
+
+    /* Success */
+    retval = 0;
+
+done:
 
     return retval;
 }

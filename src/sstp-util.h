@@ -59,10 +59,12 @@ typedef struct
  */
 status_t sstp_set_nonbl(int sock, int state);
 
+
 /*!
  * @brief Generate a UUID string
  */
 char *sstp_get_guid(char *buf, int len);
+
 
 /*!
  * @brief Set socket send buffer size
@@ -98,6 +100,18 @@ void sstp_url_free(sstp_url_st *url);
  * @brief Convert sockaddr structure to a string
  */
 const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len);
+
+
+/*!
+ * @brief Create a new directory @a path and change it's permissions to user and group
+ */
+int sstp_create_dir(const char *path, const char *user, const char *group, mode_t mode);
+
+
+/*!
+ * @brief Enter a sandbox given the new root @a newroot directory, user and group id.
+ */
+int sstp_sandbox(const char *newroot, const char *user, const char *group);
 
 
 #endif
