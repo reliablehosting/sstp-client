@@ -21,9 +21,11 @@
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <paths.h>
 
 #include "sstp-private.h"
 
@@ -66,6 +68,12 @@ struct sstp_pppd
     
     /*< Should we stil continue checking for CHAP structure */
     int auth_done;
+
+    /*< Enable authentication check */
+    int auth_check;
+
+    /*< The temporary file name */
+    char tmpfile[64];
 
     /*< The time pppd was terminated */
     unsigned long t_end;
@@ -161,8 +169,6 @@ void sstp_pppd_session_details(sstp_pppd_st *ctx, sstp_session_st *sess)
 }
 
 
-#ifndef HAVE_PPP_PLUGIN
-
 /*!
  * @brief Intercept any CHAP / PAP authentication with the peer.
  */
@@ -213,8 +219,6 @@ static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
         break;
     }
 }
-
-#endif  /* HAVE_PPP_PLUGIN */
 
 
 /*!
@@ -274,12 +278,11 @@ static status_t ppp_process_data(sstp_pppd_st *ctx)
         /* Update the final length of the packet */
         sstp_pkt_update(tx);
 
-#ifndef HAVE_PPP_PLUGIN
-        if (!ctx->auth_done) 
+        /* If plugin is not enabled, then we need to check for auth */
+        if (ctx->auth_check && !ctx->auth_done) 
         {
             sstp_pppd_check_auth(ctx, tx);
         }
-#endif  /* #ifndef HAVE_PPP_PLUGIN */
 
         /* Send a PPP frame */
         ret = sstp_stream_send(ctx->stream, tx, (sstp_complete_fn) 
@@ -422,15 +425,47 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts,
         args[i++] = sstp_task_ttydev(ctx->task);
         args[i++] = "38400";
 
-        /* If user supplied username and password (insecure) */
-        if (opts->password && opts->user)
+        /* Write user to file */
+        if (opts->user)
         {
             args[i++] = "user";
             args[i++] = opts->user;
-            args[i++] = "password";
-            args[i++] = opts->password;
         }
-        else 
+
+        /* Write the password to file */
+        if (opts->password)
+        {
+            int fd = 0;
+            char buff[255];
+
+            sprintf(ctx->tmpfile, "%s/sstp-pppd.XXXXXX", SSTP_TMP_PATH);
+
+            /* Create a file to keep the options */
+            fd = mkstemp(ctx->tmpfile);
+            if (fd <= 0)
+            {
+                log_err("Could not create pppd script");
+                goto done;
+            }
+
+            /* Dump password to temporary file */
+            j = snprintf(buff, sizeof(buff), "password %s\n", opts->password);
+            if (write(fd, buff, j) != j)
+            {
+                log_warn("Could not write password to file");
+            }
+
+            /* Close file, and enable check for auth */
+            ctx->auth_check = 1;
+            close(fd);
+
+            /* Append the file argument to pppd */
+            args[i++] = "file";
+            args[i++] = ctx->tmpfile;
+        }
+
+        /* In case we are using plugin */
+        if (!(opts->enable & SSTP_OPT_NOPLUGIN))
         {
             args[i++] = "plugin";
             args[i++] = "sstp-pppd-plugin.so";
@@ -586,6 +621,12 @@ void sstp_pppd_free(sstp_pppd_st *ctx)
     {
         event_del(ctx->ev_recv);
         event_free(ctx->ev_recv);
+    }
+
+    /* Remove the temporary file */
+    if (0 > unlink(ctx->tmpfile))
+    {
+        log_warn("Could not remove temporary file, %m (%d)", errno);
     }
 
     /* Free pppd context */
