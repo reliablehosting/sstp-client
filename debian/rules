@@ -11,6 +11,7 @@ configure:
         --mandir=${prefix}/share/man \
         --infodir=${prefix}/share/info \
         --disable-dependency-tracking \
+        --with-runtime-dir="/var/run/sstpc" \
         --enable-user sstpc \
         --enable-group sstpc
 
