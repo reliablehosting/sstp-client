@@ -69,7 +69,7 @@ AC_DEFINE_UNQUOTED(SSTP_GROUP, "${enable_group}", The sstpc privilege drop group
 
 # Specify runtime directory
 AC_ARG_WITH([runtime-dir], 
-	AC_HELP_STRING([--with-runtime-dir], [Specify the runtime directory for sstpc]))
+	AC_HELP_STRING([--with-runtime-dir=DIR], [Specify the runtime directory for sstpc]))
 AS_IF([ test -n "$with_runtime_dir"],
 	[SSTP_RUNTIME_DIR="$with_runtime_dir"],
 	[SSTP_RUNTIME_DIR="${localstatedir}/run/sstpc"])
@@ -77,7 +77,7 @@ AC_SUBST(SSTP_RUNTIME_DIR)
 
 # Check to see if we enabled PPP plug-in support (default:yes)
 AC_ARG_ENABLE(ppp-plugin, 
-    AC_HELP_STRING([--disable-ppp-plugin], [disable PPP Plugin support]),
+    AC_HELP_STRING([--disable-ppp-plugin=DIR], [disable PPP Plugin support]),
     [enable_ppp_plugin=${enableval}], [enable_ppp_plugin=yes])
 AS_IF([test "x$enable_ppp_plugin" != "xno"],
     AC_CHECK_HEADER(pppd/pppd.h,,
