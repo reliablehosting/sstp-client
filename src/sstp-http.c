@@ -350,19 +350,23 @@ static const char *sstp_proxy_basicauth(const char *user,
     EVP_ENCODE_CTX ctx;
     int tot = 0;
     int len = 0;
-    char out[255];
+    unsigned char out[255];
 
     EVP_EncodeInit  (&ctx);
-    EVP_EncodeUpdate(&ctx, out + tot, &len, user, strlen(user));
+    EVP_EncodeUpdate(&ctx, out + tot, &len, 
+		(unsigned char*) user, strlen(user));
     tot += len;
-    EVP_EncodeUpdate(&ctx, out + tot, &len, ":", 1);
+    EVP_EncodeUpdate(&ctx, out + tot, &len, 
+		(unsigned char*) ":", 1);
     tot += len;
-    EVP_EncodeUpdate(&ctx, out + tot, &len, pass, strlen(pass));
+    EVP_EncodeUpdate(&ctx, out + tot, &len, 
+		(unsigned char*) pass, strlen(pass));
     tot += len;
     EVP_EncodeFinal (&ctx, out + tot, &len);
     tot += len;
 
     snprintf(buf, size, "Basic %s", out);
+    return (buf);
 }
 
 
@@ -386,7 +390,6 @@ static void sstp_recv_proxy_complete(sstp_stream_st *client,
     sstp_http_st *http = (sstp_http_st*) ctx;
     http_header_st array[15];
     http_header_st *entry;
-    char auth[255];
     int attr  = 15;
     int code  = 0;
     int ret   = 0;
