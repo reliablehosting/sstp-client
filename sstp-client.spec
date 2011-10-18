@@ -42,6 +42,7 @@ CFLAGS="-Wall %{optflags}" 		\
 		--prefix=/usr 		\
 		--with-libevent=2 	\
 		--with-pppd-plugin-dir=%_libdir/pppd/%ppp_version
+		--with-runtime-dir=/var/run/sstpc
 %{__make} %{?_smp_mflags}
 
 %pre

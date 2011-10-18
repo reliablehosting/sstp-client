@@ -1,5 +1,5 @@
 sbin_PROGRAMS   = sstpc
-sstpc_CFLAGS	= -I$(top_srcdir)/include
+sstpc_CFLAGS	= -I$(top_srcdir)/include -DSSTP_RUNTIME_DIR='"$(SSTP_RUNTIME_DIR)"'
 sstpc_LDADD	    =       \
     libsstp-log/libsstp_log.la \
     libsstp-api/libsstp_api.la \
