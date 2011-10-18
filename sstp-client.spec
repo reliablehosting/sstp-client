@@ -2,7 +2,7 @@
 %define event_version 2.0.10
 
 Name:		sstp-client
-Version:	1.0.1
+Version:	1.0.2
 Release:	1%{?dist}
 Summary:	Secure Socket Tunneling Protocol (SSTP) Client
 Group:		Applications/Internet
@@ -41,7 +41,7 @@ CFLAGS="-Wall %{optflags}" 		\
 		--disable-static	\
 		--prefix=/usr 		\
 		--with-libevent=2 	\
-		--with-ppp-plugin-dir=%_libdir/pppd/%ppp_version
+		--with-pppd-plugin-dir=%_libdir/pppd/%ppp_version
 %{__make} %{?_smp_mflags}
 
 %pre
