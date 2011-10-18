@@ -14,7 +14,8 @@ Source0:	http://downloads.sf.net/sstp-client/sstp-client-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:	ppp >= %ppp_version
 Requires:	libevent >= %event_version
-
+Requires(pre):      /usr/sbin/useradd, /usr/bin/getent
+Requires(postun):   /usr/sbin/userdel
 
 %package devel
 Summary:	Provide development headers for sstp-client
@@ -42,6 +43,21 @@ CFLAGS="-Wall %{optflags}" 		\
 		--with-libevent=2 	\
 		--with-ppp-plugin-dir=%_libdir/pppd/%ppp_version
 %{__make} %{?_smp_mflags}
+
+%pre
+/usr/bin/getent group sstpc || /usr/sbin/groupadd -r \
+    sstpc
+
+/usr/bin/getent passwd sstpc || /usr/sbin/useradd -r \
+    -c "Secure Socket Tunneling Protocol (SSTP) Client" \
+    -g sstpc \
+    -d /var/run/sstpc \
+    -s /bin/false \
+    sstpc
+
+%postun
+rm -rf /var/run/sstpc
+/usr/sbin/userdel sstpc
 
 %install
 %{__rm} -rf %{buildroot}
