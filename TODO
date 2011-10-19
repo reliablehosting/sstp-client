@@ -1,5 +1,4 @@
 SSTP Client (1.0.2):
-* Make sure we can disable certificate check.
 * Verify that Network Manager plugin still works.
 
 Future Release
@@ -14,9 +13,8 @@ Future Release
  - Need to prevent nameresolve before invoking sstpc
  - Add proxy configuration support
  - Additional options to limit the crypto
+* Build doxygen target
 
-
-Doxygen comments throughout the project
 
 Coding style document
   - Tab Width: 4
