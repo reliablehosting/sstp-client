@@ -31,6 +31,7 @@
 #define SSTP_OPT_NODAEMON       0x0002
 #define SSTP_OPT_DEBUG          0x0004
 #define SSTP_OPT_NOPLUGIN       0x0008
+#define SSTP_OPT_CERTWARN       0x0010
 
 
 /*!

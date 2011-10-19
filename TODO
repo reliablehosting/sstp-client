@@ -1,23 +1,20 @@
 SSTP Client (1.0.2):
-
-* Network Manager Plugin support
- - Wait for Ubuntu, et al. to update their NM version
- - Need to prevent nameresolve before invoking sstpc
- - Add proxy support
- - Additional options to limit the crypto?
+* Make sure we can disable certificate check.
+* Verify that Network Manager plugin still works.
 
 Future Release
-* HTTP Proxy support
-  - Digest: User / Password
+* HTTP Proxy Digest Authentication support
 * Automate the unit-tests
  - Autotools to help do this 'make check'
 * Improve Certificate Verification
- - Command line option to ignore, or specify
  - Restrict certain cipher suites.
-* Support CRL
- - Look at stunnel project
+ - Support for CRL and certificate revocation
 * SSTP Server Support
-* Async DNS lookup?
+* Network Manager Plugin support
+ - Need to prevent nameresolve before invoking sstpc
+ - Add proxy configuration support
+ - Additional options to limit the crypto
+
 
 Doxygen comments throughout the project
 

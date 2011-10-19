@@ -264,7 +264,7 @@ status_t sstp_verify_cert(sstp_stream_st *ctx, const char *host, int opts)
         int ret = SSL_get_verify_result(ctx->ssl);
         if (X509_V_OK != ret)
         { 
-            log_err("SSL certificate verification failed: %s (%d)", 
+            log_info("SSL certificate verification failed: %s (%d)", 
                     X509_verify_cert_error_string(ret), ret);
             goto done;
         }
@@ -286,7 +286,7 @@ status_t sstp_verify_cert(sstp_stream_st *ctx, const char *host, int opts)
                 result, sizeof(result));
         if (strcasecmp(host, result))
         {
-            log_err("The certificate did not match the host: %s", host);
+            log_info("The certificate did not match the host: %s", host);
             goto done;
         }
     }

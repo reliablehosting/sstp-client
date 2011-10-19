@@ -3,6 +3,7 @@ sstp-client (1.0.2) oneiric; urgency=low
   * Added http proxy support, using basic authentication
   * Adding privilege separation by chroot, and sstpc user.
   * Covering up traces of passwords after specifying --password per command line.
+  * Command line option to ignore cerfificate errors (e.g. does not match host).
   * Fixing various bugs
 
  -- Eivind Naess <eivnaes@yahoo.com>  Sat, 18 Sept 2011 08:00:00 -0800

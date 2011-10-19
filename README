@@ -16,6 +16,16 @@ connection to a Windows 2008 Server. This software is similar commandline
 and configuration as the pptp-client software.
 
 
+Features:
+* Establish a SSTP connection to a remote Windows 2k8 server.
+* Async PPP support (most distributions provide this).
+* Similar command line handling as pptp-client for easy integration.
+* IPv6 support
+* Basic HTTP Proxy support
+* Certficate handling and verification
+* SSTP plugin integration with NetworkManager v0.9 (available as separate package)
+
+
 SSTP-CLIENT on Ubuntu:
 It's pretty simple to integrate sstp-client into the Ubuntu / Debian distribution
 distribution. An example script is provided in support/peer-sstp-example.txt

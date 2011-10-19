@@ -79,6 +79,7 @@ void sstp_usage_die(const char *prog, int code,
     printf("Available sstp options:\n");
     printf("  --ca-cert <cert>         Provide the CA certificate in PEM format\n");
     printf("  --ca-path <path>         Provide the CA certificate path\n");
+    printf("  --cert-warn              Warn on certificate errors\n");
     printf("  --ipparam <param>        The unique connection id used w/pppd\n");
     printf("  --help                   Display this menu\n");
     printf("  --debug                  Enable debug mode\n");
@@ -151,44 +152,48 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 2:
-        ctx->enable |= SSTP_OPT_DEBUG;
+        ctx->enable |= SSTP_OPT_CERTWARN;
         break;
 
     case 3:
-        sstp_usage_die(argv[0], 0, "Showing help text");
+        ctx->enable |= SSTP_OPT_DEBUG;
         break;
 
     case 4:
-        ctx->ipparam = strdup(optarg);
+        sstp_usage_die(argv[0], 0, "Showing help text");
         break;
 
     case 5:
+        ctx->ipparam = strdup(optarg);
+        break;
+
+    case 6:
         ctx->enable |= SSTP_OPT_NOLAUNCH;
         break;
 
-    case 6: 
+    case 7: 
         ctx->password = strdup(optarg);
         sstp_scramble(optarg);
         break;
 
-    case 7:
+    case 8:
         ctx->priv_user = strdup(optarg);
         break;
 
-    case 8:
+    case 9:
         ctx->priv_group = strdup(optarg);
         break;
 
-    case 9:
+    case 10:
         ctx->priv_dir = strdup(optarg);
         break;
 
-    case 10:
+    case 11:
         ctx->proxy = strdup(optarg);    // May contain user/pass.
         sstp_scramble(optarg);
         break;
 
-    case 11:
+    case 12:
         ctx->user = strdup(optarg);
         break;
 
@@ -245,15 +250,16 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
     {
         { "ca-cert",        required_argument, NULL,  0  }, /* 0 */
         { "ca-path",        required_argument, NULL,  0  },
+        { "cert-warn",      no_argument,       NULL,  0  },
         { "debug",          no_argument,       NULL,  0  },
         { "help",           no_argument,       NULL,  0  },
-        { "ipparam",        required_argument, NULL,  0  },
-        { "nolaunchpppd",   no_argument,       NULL,  0  }, /* 5 */
+        { "ipparam",        required_argument, NULL,  0  }, /* 5 */
+        { "nolaunchpppd",   no_argument,       NULL,  0  },
         { "password",       required_argument, NULL,  0  },
         { "priv-user",      required_argument, NULL,  0  },
         { "priv-group",     required_argument, NULL,  0  },
-        { "priv-dir",       required_argument, NULL,  0  },
-        { "proxy",          required_argument, NULL,  0  }, /* 10 */
+        { "priv-dir",       required_argument, NULL,  0  }, /* 10 */
+        { "proxy",          required_argument, NULL,  0  },
         { "user",           required_argument, NULL,  0  },
         { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
