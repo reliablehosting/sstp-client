@@ -7,6 +7,7 @@ Build-Depends:
  ppp-dev,
  libevent-dev,
  libssl-dev,
+ hardening-wrapper
 Standards-Version: 3.9.1
 Vcs-Svn: https://sstp-client.svn.sourceforge.net/svnroot/sstp-client
 Homepage: http://sstp-client.sourceforge.net
