@@ -14,7 +14,7 @@ Homepage: http://sstp-client.sourceforge.net
 
 Package: sstp-client
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ppp-dev, libevent-dev, libssl-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, ppp (>= 2.4.5)
 Recommends: network-manager-sstp | network-manager-sstp-gnome
 Description: Secure Socket Tunneling Protocol (SSTP) Client
  Client for the properitary Microsoft Secure Socket Tunneling Protocol, SSTP. Allows connection for a SSTP based VPN as used by employers.
