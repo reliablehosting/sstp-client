@@ -299,6 +299,17 @@ status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
         goto done;
     }
 
+    /* If we are running as root, let's change the permissions */
+    if (getuid() == 0)
+    {
+        ret = chown(addr.sun_path, sstp_get_uid(opts->priv_user), 
+                sstp_get_gid(opts->priv_group));
+        if (ret != 0)
+        {
+            log_warn("Could not change ownership of socket");
+        }
+    }
+
     /* Create new context */
     obj = calloc(1, sizeof(sstp_event_st));
     if (obj == NULL)
@@ -339,7 +350,19 @@ void sstp_event_free(sstp_event_st *ctx)
     /* Remove the IPC socket */
     if (ctx->sockname[0])
     {
-        unlink(ctx->sockname);
+        const char *name = ctx->sockname;
+        
+        /* In case we are running in a sandbox */
+        if (getuid() != 0)
+        {
+            name = rindex(ctx->sockname, '/')+1;
+        }
+
+        /* Unlink the file */
+        if (0 > unlink(name))
+        {
+            log_warn("Could not remove socket, %m (%d)", errno);
+        }
     }
     
     /* Close the socket */
