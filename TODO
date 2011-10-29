@@ -1,22 +1,14 @@
-SSTP Client (1.0.2):
-* Verify that Network Manager plugin still works.
-
-Future Release
+sstp-client:
 * HTTP Proxy Digest Authentication support
-* Automate the unit-tests
- - Autotools to help do this 'make check'
 * Improve Certificate Verification
- - Restrict certain cipher suites.
- - Support for CRL and certificate revocation
-* SSTP Server Support
-* Network Manager Plugin support
- - Need to prevent nameresolve before invoking sstpc
- - Add proxy configuration support
- - Additional options to limit the crypto
+  - Restrict certain cipher suites.
+  - Support for CRL and certificate revocation
+* Automate the unit-tests
+  - Autotools to help do this 'make check'
 * Build doxygen target
+* SSTP Server Support
 
-
-Coding style document
-  - Tab Width: 4
-  - Spaces no tabs!
-
+network-manager-sstp:
+* Sync up to latest git branch for pptp (any bug fixes?)
+* Add proxy configuration support
+* Additional options to limit the crypto
