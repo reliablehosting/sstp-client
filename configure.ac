@@ -1,6 +1,6 @@
 AC_PREREQ([2.67])
 AC_INIT([sstp-client], 
-        [1.0.2], 
+        [1.0.3],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
