@@ -31,6 +31,12 @@
 #include "sstp-private.h"
 #include "sstp-chap.h"
 
+#ifdef __SSTP_UNIT_TEST_CHAP
+#undef log_err
+#define log_err(x,args...) \
+    printf(x"\n", ##args)
+#endif
+
 /*< Indicate that we are sending */
 #define SSTP_CHAP_SENDING   0x01
 
@@ -262,10 +268,12 @@ done:
 }
 
 
-#ifdef __SSTP_TEST_CHAP
+#ifdef __SSTP_UNIT_TEST_CHAP
 
 #include <stdlib.h>
 #include <stdio.h>
+
+
 int main(int argc, char *argv[])
 {
     int retval = EXIT_FAILURE;
@@ -310,6 +318,8 @@ int main(int argc, char *argv[])
         goto done;
     }
 
+    printf("The MPPE send key is correct\n");
+
     /* Check the receive key */
     if (memcmp(rkey, cmp2, 16))
     {
@@ -317,8 +327,9 @@ int main(int argc, char *argv[])
         goto done;
     }
 
+    printf("The MPPE recv key is correct\n");
+
     /* Success! */
-    printf("Success!\n");
     retval = EXIT_SUCCESS;
 
 done:

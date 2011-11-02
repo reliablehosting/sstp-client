@@ -282,9 +282,11 @@ void sstp_task_destroy(sstp_task_st *task)
 }
 
 
-#ifdef __SSTP_TASK_UNIT_TEST
+#ifdef __SSTP_UNIT_TEST_TASK
 
 #include <stdio.h>
+
+#define TEST_STRING "Hello World\n"
 
 int main(void)
 {
@@ -292,10 +294,11 @@ int main(void)
     sstp_task_st *task;
     int i = 0;
     int ret = 0;
+    char buf[13] = {};
 
     args[i++] = "/bin/echo";
     args[i++] = "-e";
-    args[i++] = "Hello World\n";
+    args[i++] = TEST_STRING;
     args[i++] = NULL;
 
     /* Create the task */
@@ -314,17 +317,30 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    /* Read the string */
+    ret = read(sstp_task_stdout(task), buf, sizeof(buf)-1);
+    if (ret != sizeof(TEST_STRING)-1)
     {
-    char buf[13] = {};
-    read(sstp_task_stdout(task), buf, sizeof(buf)-1);
-    printf("%s", buf);
+        printf("Could not read bytes from task %d\n", ret);
+        return EXIT_FAILURE;
     }
 
+    /* Make sure it's correct */
+    if (strcmp(buf, TEST_STRING))
+    {
+        printf("The read data was not \"%s\"", TEST_STRING);
+        return EXIT_FAILURE;
+    }
+
+    /* Wait for the task to terminate */
     ret = sstp_task_wait(task, NULL, 0);
     if (SSTP_OKAY != ret)
     {
         printf("Could not collect child\n");
+        return EXIT_FAILURE;
     }
+
+    printf("Successfully executed /bin/echo and validated the output\n");
 
     sstp_task_destroy(task);
     return EXIT_SUCCESS;

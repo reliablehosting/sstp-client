@@ -5,6 +5,23 @@ sstpc_LDADD	    =       \
     libsstp-api/libsstp_api.la \
     libsstp-compat/libsstp_compat.la
 
+utest_task_SOURCES  = sstp-task.c
+utest_task_CFLAGS   = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_TASK=1
+utest_cmac_SOURCES  = sstp-cmac.c
+utest_cmac_CFLAGS   = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_CMAC=1
+utest_chap_SOURCES  = sstp-chap.c
+utest_chap_CFLAGS   = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_CHAP=1
+utest_fcs_SOURCES   = sstp-fcs.c
+utest_fcs_CFLAGS    = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_FCS=1
+
+check_PROGRAMS      =   \
+    utest_task          \
+    utest_cmac          \
+    utest_chap          \
+    utest_fcs
+
+TESTS= $(check_PROGRAMS)
+
 sstpc_SOURCES =         \
     sstp-client.c       \
     sstp-option.c       \

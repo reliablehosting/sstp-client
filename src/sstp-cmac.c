@@ -126,7 +126,7 @@ void sstp_cmac_result(cmac_ctx_st *ctx, uint8_t *msg, int mlen, uint8_t *result,
 
 
 
-#ifdef __SSTP_TEST_CMAC
+#ifdef __SSTP_UNIT_TEST_CMAC
 
 int sstp_test_sha1(void)
 {

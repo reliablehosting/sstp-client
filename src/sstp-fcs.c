@@ -200,7 +200,8 @@ status_t sstp_frame_encode(const unsigned char *source, int ilen,
 }
 
 
-#ifdef __TEST_SSTP_FCS
+#ifdef __SSTP_UNIT_TEST_FCS
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -264,7 +265,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    printf("The FCS test completed successfully\n");
+    printf("Frame decoded successfully in %d bytes\n", clen);
     return EXIT_SUCCESS;
 }
 
