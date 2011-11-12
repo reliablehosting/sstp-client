@@ -264,6 +264,12 @@ static void sstp_client_connected(sstp_stream_st *stream, sstp_buff_st *buf,
         sstp_die("Could not configure HTTP handshake with server", -1);
     }
 
+    /* Set the uuid of the connection if provided */
+    if (client->option.uuid)
+    {
+        sstp_http_setuuid(client->http, client->option.uuid);
+    }
+
     /* Perform the HTTP handshake with server */
     ret = sstp_http_handshake(client->http, client->stream);
     if (SSTP_FAIL == ret)

@@ -72,6 +72,9 @@ typedef struct
     /*! Username */
     char *user;
 
+    /*! Use a persistent UUID */
+    char *uuid;
+
     /*! The number of arguments to pppd */
     int pppdargc;
 

@@ -77,6 +77,12 @@ void sstp_http_setcreds(sstp_http_st *http, const char *user,
         const char *password);
 
 
+/*!
+ * @brief Set the UUID of the connection
+ */
+void sstp_http_setuuid(sstp_http_st *http, const char *uuid);
+
+
 /*! 
  * @brief Free the HTTP context
  */

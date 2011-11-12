@@ -73,6 +73,9 @@ struct sstp_http
 
     /*! The password */
     char *pass;
+
+    /*! The uuid if set */
+    char uuid[64];
 };
 
 
@@ -136,6 +139,9 @@ status_t sstp_http_create(sstp_http_st **http, const char *server,
         free(*http);
         return SSTP_FAIL;
     }
+
+    /* Set a random UUID */
+    sstp_get_guid((*http)->uuid, sizeof((*http)->uuid));
 
     return SSTP_OKAY;
 }
@@ -268,7 +274,6 @@ static void sstp_http_send_proxy_complete(sstp_stream_st *stream, sstp_buff_st *
 static status_t sstp_http_send_hello(sstp_http_st *http, 
         sstp_stream_st *stream)
 {
-    char uuid[64];
     int ret = 0;
 
     sstp_buff_reset(http->buf);
@@ -297,7 +302,7 @@ static status_t sstp_http_send_hello(sstp_http_st *http,
 
     /* Add the UUID attribute */
     ret = sstp_buff_print(http->buf, "SSTPCORRELATIONID: %s\r\n\r\n", 
-            sstp_get_guid(uuid, sizeof(uuid)));
+            http->uuid, strlen(http->uuid));
     if (SSTP_OKAY != ret)
     {
         return ret;
@@ -378,6 +383,15 @@ void sstp_http_setcreds(sstp_http_st *http, const char *user,
 {
     http->user = strdup(user);
     http->pass = strdup(pass);
+}
+
+
+/*!
+ * @brief Set the UUID of the connection
+ */
+void sstp_http_setuuid(sstp_http_st *http, const char *uuid)
+{
+    strncpy(http->uuid, uuid, sizeof(http->uuid));
 }
 
 
