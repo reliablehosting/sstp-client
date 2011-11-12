@@ -165,8 +165,11 @@ sstp_chap_st *sstp_pppd_getchap(sstp_pppd_st *ctx)
 
 void sstp_pppd_session_details(sstp_pppd_st *ctx, sstp_session_st *sess)
 {
-    sess->established = ((ctx->t_end == 0) ? time(NULL) : ctx->t_end) - 
-        ctx->t_start;
+    unsigned long t_end = ((ctx->t_end == 0) 
+        ? time(NULL) 
+        : ctx->t_end);
+
+    sess->established = t_end - ctx->t_start;
     sess->rx_bytes = ctx->recv_bytes;
     sess->tx_bytes = ctx->sent_bytes;
 }
@@ -509,13 +512,15 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts,
 
         /* Get the socket to listen on */
         ctx->sock    = sstp_task_stdout(ctx->task);
-        ctx->t_start = time(NULL);
     }
     else
     {
         /* pppd is our parent, we communciate over a pty terminal */
         ctx->sock = STDIN_FILENO;
     }
+
+    /* Need to record approximate time */
+    ctx->t_start = time(NULL);
 
     /* Add the event context */
     ctx->ev_recv = event_new(ctx->ev_base, ctx->sock, EV_READ, (event_fn) 
