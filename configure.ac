@@ -150,6 +150,10 @@ AC_OUTPUT
 echo "
 $PACKAGE_NAME version $PACKAGE_VERSION
    Prefix.........: $prefix
+   Runtime Dir....: $SSTP_RUNTIME_DIR
+   PPP Plugin Dir.: $PPPD_PLUGIN_DIR
+   User:..........: $enable_user
+   Group:.........: $enable_group
    Using OpenSSL..: $OPENSSL_INCLUDES $OPENSSL_LDFLAGS $OPENSSL_LIBS
    C Compiler.....: $CC $CFLAGS
    Using Event....: $LIBEVENT_CFLAGS $LIBEVENT_LIBS
