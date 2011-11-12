@@ -1,3 +1,14 @@
+sstp-client (1.0.3) oneiric; urgency=low
+
+  * Added command line option to specify the uuid of the connection
+  * Fixed various bugs, to mention:
+    - Cleanup of unix socket on termination
+    - Correct parsing of the URL 
+    - Fix connected time error when using --nolaunchpppd option
+    - Unit tests was added
+    - Added hardening of ubuntu build scripts
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 12 Nov 2011 16:00:00 -0800
 sstp-client (1.0.2) oneiric; urgency=low
 
   * Added http proxy support, using basic authentication
