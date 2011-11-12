@@ -137,13 +137,11 @@ status_t sstp_url_parse(sstp_url_st **url, const char *path)
     if (ctx->user)
     {
         ptr1 = strchr(ctx->user, ':');
-        if (!ptr1)
+        if (ptr1)
         {
-            goto errout;
+            *ptr1++ = '\0';
+            ctx->password = ptr1;
         }
-
-        *ptr1++ = '\0';
-        ctx->password = ptr1;
     }
 
     /* Look for the optional port component */
