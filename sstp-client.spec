@@ -2,7 +2,7 @@
 %define event_version 2.0.10
 
 Name:		sstp-client
-Version:	1.0.2
+Version:	1.0.3
 Release:	1%{?dist}
 Summary:	Secure Socket Tunneling Protocol (SSTP) Client
 Group:		Applications/Internet
@@ -87,5 +87,21 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
-* Sun Oct 02 2011 Eivind Naess <eivnaes@yahoo.com> - 1.0-1
+* Sun Nov 13 2011 Eivind Naess <eivnaes@yahoo.com> - 1.0.3-1
+  * Added command line option to specify the uuid of the connection
+  * Fixed various bugs, to mention:
+    - Cleanup of unix socket on termination
+    - Correct parsing of the URL 
+    - Fix connected time error when using --nolaunchpppd option
+    - Unit tests was added
+    - Added hardening of ubuntu build scripts
+
+* Sun Oct 20 2011 Eivind Naess <eivnaes@yahoo.com> - 1.2-1
+  - Added http proxy support, using basic authentication
+  - Adding privilege separation by chroot, and sstpc user.
+  - Covering up traces of passwords after specifying --password per command line.
+  - Command line option to ignore cerfificate errors (e.g. does not match host).
+  - Fixing various bugs
+  
+* Sun Oct 02 2011 Eivind Naess <eivnaes@yahoo.com> - 1.0.1-1
 - Initial packaging release
