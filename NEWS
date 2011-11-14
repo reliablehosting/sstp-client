@@ -1,3 +1,13 @@
+Release 1.0.3: (November 13, 2011)
+- Added command line option to specify the uuid of the connection
+- Fixed various bugs, to mention:
+   * Cleanup of unix socket on termination
+   * Correct parsing of the URL 
+   * Fix connected time error when using --nolaunchpppd option
+   * Unit tests was added
+   * Added hardening of ubuntu build scripts
+
+
 Release 1.0.2: (October 20, 2011)
 - Added Basic HTTP proxy support
 - Allow for user to ignore certificate warnings by specifying '--cert-warn'
