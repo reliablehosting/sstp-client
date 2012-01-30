@@ -52,13 +52,10 @@
 /*!
  * @brief A asynchronous send or recv channel object
  */
-typedef struct
+typedef struct sstp_operation
 {
-    /*< The socket */
-    int sock;
-
-    /*< The event structure */
-    event_st *ev_event;
+    /*< The next operation */
+    struct sstp_operation *next;
 
     /*< Timeout if any */
     timeval_st tout;
@@ -72,7 +69,7 @@ typedef struct
     /*< Argument to pass back the complete function */
     void *arg;
     
-} sstp_channel_st;
+} sstp_operation_st;
 
 
 /*! 
@@ -80,8 +77,11 @@ typedef struct
  */
 struct sstp_stream
 {
-    /*< The socket */
-    int sock;
+    /*< The send socket */
+    int ssock;
+
+    /*< The recv socket */
+    int rsock;
 
     /*< Last activity seen on socket */
     time_t last;
@@ -95,115 +95,248 @@ struct sstp_stream
     /*< The length check function */
     sstp_recv_fn recv_cb;
 
-    /*< Channel for receive operation */
-    sstp_channel_st recv;
-
-    /*< Channel for send operation */
-    sstp_channel_st send;
+    /*< The send function */
+    event_fn send_cb;
 
     /*< The event base */
     event_base_st *ev_base;
+
+    /*< The receive event */
+    event_st *ev_recv;
+
+    /*< Channel for receive operation */
+    sstp_operation_st recv;
+
+    /*< The event structure */
+    event_st *ev_send;
+
+    /*< Channel for send operation */
+    sstp_operation_st *send;
+
+    /*< The list of free operations */
+    sstp_operation_st *cache;
 };
 
+
+static int sstp_operation_add_read(sstp_stream_st *ctx, sstp_buff_st *buf,
+    int event, int timeout, sstp_complete_fn complete, void *arg);
+
+/*!
+ * @brief Allocate a new operation or grab one from the cache
+ */
+static sstp_operation_st *sstp_operation_get(sstp_stream_st *ctx, 
+    sstp_buff_st *buf, 
+    int timeout, 
+    sstp_complete_fn complete, 
+    void *arg)
+{
+    sstp_operation_st *op = NULL;
+
+    if (!ctx->cache) 
+    {
+        op = calloc(1, sizeof(sstp_operation_st));
+        op->buf         = buf;
+        op->complete    = complete;
+        op->arg         = arg;
+        op->tout.tv_sec = timeout;
+    }
+    else
+    {
+        op = ctx->cache;
+        op->next        = NULL;
+        op->buf         = buf;
+        op->complete    = complete;
+        op->arg         = arg;
+        op->tout.tv_sec = timeout;
+        ctx->cache      = op->next;
+    }
+
+    return op;
+}
+
+/*!
+ * @brief Add another send operation to the list.
+ */
+static void sstp_operation_append(sstp_operation_st **head, 
+        sstp_operation_st *item)
+{   
+    item->next = NULL;
+
+    sstp_operation_st *ptr = *head;
+    if (ptr == NULL)
+    {
+        *head = item;
+        return;
+    }
+
+    while (ptr && ptr->next)
+        ptr = ptr->next;
+
+    ptr->next = item;
+}
 
 /*!
  * @brief Continue the send operation
  */
 static void sstp_send_cont(int sock, short event, sstp_stream_st *ctx)
 {
-    sstp_channel_st *ch = &ctx->send;
+    sstp_operation_st *op;
     int ret = 0;
 
-    // TODO: HANDLE TIMEOUT
-
-    /* Retry the send operation, better luck this time */
-    ret = sstp_stream_send(ctx, ch->buf, ch->complete, ch->arg, 
-            ch->tout.tv_sec);
-    switch (ret)
+    while (ctx->send) 
     {
-    case SSTP_FAIL:
-    case SSTP_OKAY:
+        op = ctx->send;
+        ctx->send = op->next;
+
+        /* Retry the send operation, better luck this time */
+        ret = sstp_stream_send(ctx, op->buf, op->complete, op->arg, 
+                op->tout.tv_sec);
+        if (ret == SSTP_INPROG) 
+            return;
 
         /* Notify the caller of the status */
-        ch->complete(ctx, ch->buf, ch->arg, ret);
-        break;
-
-    case SSTP_INPROG:
-
-        /* This state is already handled */
-        break;
+        op->complete(ctx, op->buf, op->arg, ret);
+        op->next   = ctx->cache;
+        ctx->cache = op;
     }
 }
 
-
+/*! 
+ * @brief Resume the send operation by retrying last operation
+ */
 static void sstp_recv_cont(int sock, short event, sstp_stream_st *ctx)
 {
-    sstp_channel_st *ch = &ctx->recv;
+    sstp_operation_st *op = &ctx->recv;
     int ret = 0;
 
     /* Handle Timeout */
     if (EV_TIMEOUT & event)
     {
-        ch->complete(ctx, ch->buf, ch->arg, SSTP_TIMEOUT);
+        op->complete(ctx, op->buf, op->arg, SSTP_TIMEOUT);
         return;
     }
 
     /* Try to receive data */
-    ret = (ctx->recv_cb)(ctx, ch->buf, ch->complete, ch->arg, 
-            ch->tout.tv_sec);
-    switch (ret)
-    {
-    case SSTP_FAIL:
-    case SSTP_OKAY:
+    ret = (ctx->recv_cb)(ctx, op->buf, op->complete, op->arg, 
+            op->tout.tv_sec);
+    if (ret == SSTP_INPROG)
+        return;
         
-        /* Notify the caller of the status */
-        ch->complete(ctx, ch->buf, ch->arg, ret);
-        break;
+    /* Notify the caller of the status */
+    op->complete(ctx, op->buf, op->arg, ret);
 
-    case SSTP_INPROG:
-        
-        /* This state is already handled */
-        break;
-    }
+    /* Re-add the event */
+    sstp_operation_add_read(ctx, op->buf, EV_READ,  
+            op->tout.tv_sec, op->complete, op->arg);
 }
 
 
-static void sstp_channel_setup(sstp_stream_st *ctx, sstp_channel_st *ch, 
-    sstp_buff_st *buf, int timeout, sstp_complete_fn complete, void *arg)
+/*!
+ * @brief Add a the read operation
+ */
+static int sstp_operation_add_read(sstp_stream_st *ctx, 
+    sstp_buff_st *buf, 
+    int event,
+    int timeout, 
+    sstp_complete_fn complete, 
+    void *arg)
 {
-    ch->buf         = buf;
-    ch->complete    = complete;
-    ch->arg         = arg;
-    ch->tout.tv_sec = timeout;
+    int retval = SSTP_FAIL;
+    int pend   = 0;
+    int ret    = 0;
 
-    /* libevent cannot re-use same socket */
-    if (ch->sock <= 0)
+    sstp_operation_st *op = &ctx->recv;
+    op->buf         = buf;
+    op->complete    = complete;
+    op->arg         = arg;
+    op->tout.tv_sec = timeout;
+
+    if (timeout > 0)
+        event |= EV_TIMEOUT;
+
+    if (event_pending(ctx->ev_recv, EV_READ | EV_WRITE | 
+            EV_TIMEOUT, NULL)) 
     {
-        ch->sock = dup(ctx->sock); 
+        event_del(ctx->ev_recv);
     }
 
-    return;
+    event_set(ctx->ev_recv, ctx->rsock, event,
+        (event_fn) sstp_recv_cont, ctx);
+    
+    /* Set the event base */
+    event_base_set(ctx->ev_base, ctx->ev_recv);
+
+    /* Add the event */
+    ret = event_add(ctx->ev_recv, (timeout > 0) ? 
+            &op->tout : NULL);
+    if (ret != 0) 
+    {
+        log_err("Could not add read event");
+        goto done;
+    }
+
+    /* Success */
+    retval = SSTP_OKAY;
+
+done:
+
+    return retval;
 }
 
-
-static void sstp_channel_disconnect(sstp_channel_st *ch)
+/*!
+ * @brief Queue a write operation to the list of events
+ */
+static int sstp_operation_add_write(sstp_stream_st *ctx,
+    sstp_buff_st *buf,
+    int event,
+    int timeout,
+    sstp_complete_fn complete,
+    void *arg)
 {
-    if (ch->sock > 0)
+    sstp_operation_st *op = NULL;
+    sstp_operation_st *ptr = ctx->send;
+    int ret  = SSTP_FAIL;
+    int pend = 0;
+
+    op = sstp_operation_get(ctx, buf, timeout, complete, arg);
+    if (!op) 
     {
-        close(ch->sock);
-        ch->sock = -1;
+        log_err("Could not allocate a free operation");
+        goto done;
+    }
+    
+    sstp_operation_append(&ctx->send, op);
+
+    /* In case current operation is pending */
+    pend = event_pending(ctx->ev_send, EV_READ | 
+            EV_WRITE | EV_TIMEOUT, NULL);
+    if (pend)
+    {
+        ret = SSTP_INPROG;
+        goto done;
     }
 
-    if (ch->ev_event)
-    {
-        event_del(ch->ev_event);
-        event_free(ch->ev_event);
-        ch->ev_event = NULL;
-    }
+    if (timeout > 0)
+        event |= EV_TIMEOUT;
 
-    return;
+    /* Configure the event */
+    event_set(ctx->ev_send, ctx->ssock, event, 
+            (event_fn) ctx->send_cb, ctx);
+
+    /* Set the event base */
+    event_base_set(ctx->ev_base, ctx->ev_send);
+
+    /* Add the event */
+    ret = event_add(ctx->ev_send, (timeout > 0) ? 
+            &op->tout : NULL);
+
+    /* Success */
+    ret = SSTP_OKAY;
+
+done:
+
+    return ret;
 }
-
 
 status_t sstp_get_cert_hash(sstp_stream_st *ctx, int proto, 
     unsigned char *hash, int hlen)
@@ -241,7 +374,6 @@ done:
 
     return (status);
 }
-
 
 status_t sstp_verify_cert(sstp_stream_st *ctx, const char *host, int opts)
 {
@@ -323,16 +455,16 @@ status_t sstp_stream_recv_http(sstp_stream_st *ctx, sstp_buff_st *buf,
 status_t sstp_stream_recv_plain(sstp_stream_st *ctx, sstp_buff_st *buf, 
         sstp_complete_fn complete, void *arg, int timeout)
 {
-    sstp_channel_st *ch = &ctx->recv;
+    sstp_operation_st *op = &ctx->recv;
     status_t status = SSTP_FAIL;
     int ret = 0;
 
     /* Save the arguments in case of callback */
-    sstp_channel_setup(ctx, ch, buf, timeout, complete, arg);
     ctx->recv_cb = sstp_stream_recv_plain;
     
     /* Receive data */
-    ret = recv(ch->sock, buf->data + buf->off, buf->max - buf->off, 0);
+    ret = recv(ctx->rsock, buf->data + buf->off, 
+            buf->max - buf->off, 0);
     if (ret <= 0)
     {
         log_err("Unrecoverable socket error, %d", errno);
@@ -349,29 +481,25 @@ done:
     return status;
 }
 
-
 status_t sstp_stream_recv(sstp_stream_st *ctx, sstp_buff_st *buf, 
         sstp_complete_fn complete, void *arg, int timeout)
 {
-    sstp_channel_st *ch = &ctx->recv;
+    sstp_operation_st *op = &ctx->recv;
     status_t status = SSTP_FAIL;
     short event = 0;
     int ret = 0;
-
-    /* Save the arguments in case of callback */
-    sstp_channel_setup(ctx, ch, buf, timeout, complete, arg);
-    ctx->recv_cb = sstp_stream_recv;
 
     /* Setup the timeout */
     if (timeout > 0)
     {
         event |= EV_TIMEOUT;
     }
+    ctx->recv_cb = sstp_stream_recv;
 
     /* Activity Timer */
     ctx->last = time(NULL);
 
-    /* Try to read from the SSL socket */
+    /* Try to read from the SSL socket until it blocks */
     ret = SSL_read(ctx->ssl, buf->data + buf->off, buf->max - buf->off);
     switch (SSL_get_error(ctx->ssl, ret))
     {
@@ -381,16 +509,14 @@ status_t sstp_stream_recv(sstp_stream_st *ctx, sstp_buff_st *buf,
         break;
 
     case SSL_ERROR_WANT_READ:
-        event |= EV_READ;
-        event_set(ch->ev_event, ch->sock, event,
-                (event_fn) sstp_recv_cont, ctx);
+        sstp_operation_add_read(ctx, buf, EV_READ, timeout,
+            complete, arg);
         status = SSTP_INPROG;
         goto done;
 
     case SSL_ERROR_WANT_WRITE:
-        event |= EV_WRITE;
-        event_set(ch->ev_event, ch->sock, event,
-                (event_fn) sstp_recv_cont, ctx);
+        sstp_operation_add_read(ctx, buf, EV_WRITE, timeout,
+            complete, arg);
         status = SSTP_INPROG;
         goto done;
     
@@ -399,45 +525,19 @@ status_t sstp_stream_recv(sstp_stream_st *ctx, sstp_buff_st *buf,
         goto done;
     }
 
+    status = SSTP_OKAY;
+
 done:
-
-    /* No need to add event... */
-    if (SSTP_INPROG != status)
-    {
-        return status;
-    }
-
-    /* Update the event base */
-    event_base_set(ctx->ev_base, ch->ev_event);
-
-    /* Add the event */
-    ret = event_add(ch->ev_event, &ch->tout);
-    if (ret != 0)
-    {
-        log_err("Could not add new event");
-        status = SSTP_FAIL;
-    }
 
     return status;
 }
 
-
 status_t sstp_stream_recv_sstp(sstp_stream_st *ctx, sstp_buff_st *buf, 
         sstp_complete_fn complete, void *arg, int timeout)
 {
-    sstp_channel_st *ch= &ctx->recv;
     status_t status = SSTP_FAIL;
     short event = 0;
     int ret = 0;
-
-    /* Save the arguments in case of callback */
-    sstp_channel_setup(ctx, ch, buf, timeout, complete, arg);
-
-    /* Setup the timeout */
-    if (timeout > 0)
-    {
-        event |= EV_TIMEOUT;
-    }
 
     /* Activity Timer */
     ctx->last = time(NULL);
@@ -459,16 +559,14 @@ status_t sstp_stream_recv_sstp(sstp_stream_st *ctx, sstp_buff_st *buf,
             break;
 
         case SSL_ERROR_WANT_READ:
-            event |= EV_READ;
-            event_set(ch->ev_event, ch->sock, event,
-                    (event_fn) sstp_recv_cont, ctx);
+            sstp_operation_add_read(ctx, buf, EV_READ, timeout,
+                complete, arg);
             status = SSTP_INPROG;
             goto done;
 
         case SSL_ERROR_WANT_WRITE:
-            event |= EV_WRITE;
-            event_set(ch->ev_event, ch->sock, event,
-                    (event_fn) sstp_recv_cont, ctx);
+            sstp_operation_add_read(ctx, buf, EV_WRITE, timeout,
+                complete, arg);
             status = SSTP_INPROG;
             goto done;
         
@@ -484,157 +582,21 @@ status_t sstp_stream_recv_sstp(sstp_stream_st *ctx, sstp_buff_st *buf,
 
 done:
 
-    /* No need to add event... */
-    if (SSTP_INPROG != status)
-    {
-        return status;
-    }
-
-    /* Update the event base */
-    event_base_set(ctx->ev_base, ch->ev_event);
-
-    /* Add the event */
-    ret = event_add(ch->ev_event, &ch->tout);
-    if (ret != 0)
-    {
-        log_err("Could not add new event");
-        status = SSTP_FAIL;
-    }
-
     return status;
 }
-
 
 void sstp_stream_setrecv(struct sstp_stream *ctx, sstp_recv_fn recv_cb,
     sstp_buff_st *buf, sstp_complete_fn complete, void *arg, int timeout)
 {
     short event = EV_READ;
-    
+
     /* Setup the channel */
-    sstp_channel_st *ch = &ctx->recv;
-    sstp_channel_setup(ctx, ch, buf, timeout, complete, arg);
     ctx->recv_cb = recv_cb;
-
-    /* We need to reset the buffer */
+    sstp_operation_add_read(ctx, buf, EV_READ, timeout, 
+            complete, arg);
     sstp_buff_reset(buf);
-
-    /* Configure timeout? */
-    if (timeout > 0)
-    {
-        event |= EV_TIMEOUT;
-    }
-
-    /* Free the event if it already exist */
-    if (ch->ev_event)
-    {
-        event_free(ch->ev_event);
-    }
-
-    /* Setup a receive event */
-    ch->ev_event = event_new(ctx->ev_base, ch->sock, event, (event_fn)
-            sstp_recv_cont, ctx);
-    event_base_set(ctx->ev_base, ch->ev_event);
-
-    /* Add the event */
-    event_add(ch->ev_event, (timeout > 0) ? &ch->tout : NULL);
 }
 
-
-#if 0
-
-/*!
- * @brief Receive a HTTP response
- * 
- * @par Note:
- *   The intention is to build a reliable receiver of HTTP requests, let's
- *   tackle that later; reading the full chunk will work for now...
- * 
- *   In general, if no 'Content-Length' attribute is specified, but the 
- *   'Transfer-Encoding is specified to 'Chunked' then just after the 
- *   header -- a blank line, and then a number in hexdecimal. We can
- *   parse this number to find out how many more bytes there is to
- *   read from the stream. If 'Content-Length' is specified, then this
- *   will be the number of bytes contained within the body.
- * 
- */
-status_t sstp_stream_recv_http(sstp_stream_st *stream, sstp_buff_st *buf, 
-    sstp_complete_fn complete, void *arg)
-{
-    int ret  =  0;
-    int code =  0;
-    int attr = 10;
-    status_t status = SSTP_FAIL;
-
-    http_header_st array[10];
-    http_header_st *entry = NULL;
-    sstp_buff_st *buf = fsm->buf;
-
-    /* Try to read the most we can */
-    buf->len = buf->max;
-    buf->off = 0;
-
-    /* Try to receive a blob */
-    ret = sstp_stream_recv(fsm->stream, fsm->buf,
-            sstp_stream_http_complete, fsm);
-    switch (ret)
-    {
-    case SSTP_FAIL:
-        // Error out
-        goto done;
-
-    case SSTP_INPROG:
-        // Additional handling here?
-        goto done;
-    
-    case SSTP_OKAY:
-        break;
-    }
-
-    /*
-     * Call function to determine length of HTTP Response given the amount
-     * of data that we have received. We might need to do multiple recv()
-     * before all the data of the HTTP stream is consumed.
-     * 
-     * We don't have to read the data per-byte (block increment will do).
-     * In the case we do have more data to read, add a read-event and 
-     * wait for select() to signal read again now set with the correct 
-     * length of the buffer.
-     */
-
-    /* Get the HTTP headers */
-    ret = sstp_http_get(fsm->buf, &code, &attr, array);
-    if (SSTP_OKAY != ret)
-    {
-        log_err("Could not parse the HTTP headers");
-        goto done;
-    }
-
-    /* If there is any additional data available ... */
-    entry = sstp_http_get_header("Content-Length", attr, array);
-    if (entry)
-    {
-        buf->len = strtoul(entry->value, NULL, 10);
-        buf->off = 0;
-
-        ret = sstp_stream_recv(fsm->stream, fsm->buf,
-                sstp_recv_hello_complete, fsm);
-        if (SSTP_OKAY != ret)
-        {
-            goto done;
-        }
-
-        buf->data[buf->len] = '\0';
-        log_info("Received: %d\n%s\n", buf->len, buf->data);
-    }
-    
-    /* Validate the response */
-    status = SSTP_OKAY;
-
-done:
-
-    return status;
-}
-#endif
 
 /*!
  * @brief Continue the send operation
@@ -642,19 +604,25 @@ done:
 static void sstp_send_cont_plain(int sock, short event, 
         sstp_stream_st *ctx)
 {
-    sstp_channel_st *ch = &ctx->send;
+    sstp_operation_st *op = NULL;
     int ret = 0;
+    
+    op = ctx->send;
+    ctx->send = op->next;
 
     /* Retry the send operation, better luck this time */
-    ret = sstp_stream_send_plain(ctx, ch->buf, ch->complete, ch->arg, 
-            ch->tout.tv_sec);
+    ret = sstp_stream_send_plain(ctx, op->buf, op->complete, 
+            op->arg, op->tout.tv_sec);
     switch (ret)
     {
     case SSTP_FAIL:
     case SSTP_OKAY:
 
         /* Notify the caller of the status */
-        ch->complete(ctx, ch->buf, ch->arg, ret);
+        op->complete(ctx, op->buf, op->arg, ret);
+        ctx->send = op->next;
+        op->next  = ctx->cache;
+        ctx->cache= op;
         break;
 
     case SSTP_INPROG:
@@ -668,116 +636,87 @@ static void sstp_send_cont_plain(int sock, short event,
 status_t sstp_stream_send_plain(sstp_stream_st *stream, sstp_buff_st *buf,
     sstp_complete_fn complete, void *arg, int timeout)
 {
-    sstp_channel_st *ch = &stream->send;
-    status_t retval = SSTP_FAIL;
     int ret = 0;
 
     /* Non-blocking send */
-    ret = send(ch->sock, buf->data + buf->off,
+    ret = send(stream->ssock, buf->data + buf->off,
             buf->len - buf->off, 0);
     if (ret <= 0)
     {
         log_err("Unrecoverable socket error, %d", errno);
-        goto done;
+        return SSTP_FAIL;
     }
 
     /* Did we complete the write */
     buf->off += ret;
     if (buf->off < buf->len)
     {
-        /* Update the event */
-        event_set(ch->ev_event, ch->sock, EV_WRITE | EV_TIMEOUT,
-                (event_fn) sstp_send_cont_plain, stream);
-
-        /* Update the event base */
-        event_base_set(stream->ev_base, ch->ev_event);
-
-        /* Add the event */
-        ret = event_add(ch->ev_event, &ch->tout);
-        if (ret != 0)
-        {
-            log_err("Could not add new event");
-            retval = SSTP_FAIL;
-        }
+        stream->send_cb = (event_fn) sstp_send_cont_plain;
+        sstp_operation_add_write(stream, buf, EV_WRITE, timeout,
+                complete, stream);
 
         /* Send in progress */
-        retval = SSTP_INPROG;
-        goto done;
+        return SSTP_INPROG;
     }
 
-    /* Success */
-    retval = SSTP_OKAY;
-
-done:
-
-    return retval;
+    return SSTP_OKAY;
 }
 
 
 status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     sstp_complete_fn complete, void *arg, int timeout)
 {
-    sstp_channel_st *ch = &stream->send;
     status_t status = SSTP_FAIL;
     int ret = 0;
 
-    /* Save the arguments in case of callback */
-    sstp_channel_setup(stream, ch, buf, timeout, complete, arg);
     stream->last = time(NULL);
+    stream->send_cb = (event_fn) sstp_send_cont;
+
+    /* 
+     * If we try SSL_write before previous operation is complete, we
+     * will end up with a SSL error and disconnect. There's two ways
+     * this can happen: 
+     *  1. Sending a response to SSTP protocol related packet
+     *  2. PPP data to be forwarded
+     */
+
+    if (event_pending(stream->ev_send, EV_READ | EV_WRITE, NULL))
+    {
+        sstp_operation_add_write(stream, buf, EV_WRITE, timeout,
+                complete, arg);
+        return SSTP_INPROG;
+    }
 
     do
     {
         /* Try SSL write to the socket */
+        int err = 0;
         ret = SSL_write(stream->ssl, buf->data + buf->off, 
                 buf->len - buf->off);
-        switch (SSL_get_error(stream->ssl, ret))
+        switch ((err = SSL_get_error(stream->ssl, ret)))
         {
         case SSL_ERROR_NONE:
             buf->off += ret;
             break;
 
         case SSL_ERROR_WANT_READ:
-            event_set(ch->ev_event, ch->sock, EV_READ | EV_TIMEOUT,
-                    (event_fn) sstp_send_cont, stream);
-            status = SSTP_INPROG;
-            goto done;
+            sstp_operation_add_write(stream, buf, EV_READ, 
+                    timeout, complete, arg);
+            return SSTP_INPROG;
         
         case SSL_ERROR_WANT_WRITE:
-            event_set(ch->ev_event, ch->sock, EV_WRITE | EV_TIMEOUT,
-                    (event_fn) sstp_send_cont, stream);
-            status = SSTP_INPROG;
-            goto done;
+            sstp_operation_add_write(stream, buf, EV_WRITE, 
+                    timeout, complete, arg);
+            return SSTP_INPROG;
 
         default:
-            log_err("Unrecoverable socket error");
-            goto done;
+            log_err("Unrecoverable socket error, %d", err);
+            return SSTP_FAIL;
         }
 
     } while (buf->off < buf->len);
 
-    /* Success */
-    status = SSTP_OKAY;
-
-done:
-
-    /* Don't wait for the complete callback */ 
-    if (SSTP_INPROG != status)
-    {
-        return status;
-    }
-    
-    /* Update the event base */
-    event_base_set(stream->ev_base, ch->ev_event);
-
-    /* Add the event */
-    ret = event_add(ch->ev_event, &ch->tout);
-    if (ret != 0)
-    {
-        log_err("Could not add new event");
-        status = SSTP_FAIL;
-    }
-
-    return (status);
+    return SSTP_OKAY;
 }
 
 
@@ -792,7 +731,7 @@ static status_t sstp_stream_setup(sstp_stream_st *stream)
     }
 
     /* Associate a socket with the connection */
-    if (SSL_set_fd(stream->ssl, stream->sock) < 0)
+    if (SSL_set_fd(stream->ssl, stream->ssock) < 0)
     {   
         log_err("Could not set SSL socket");
         goto done;
@@ -815,13 +754,15 @@ done:
     return SSTP_FAIL;
 }
 
-
 static void sstp_connect_complete(int sock, short event, 
         sstp_stream_st *stream)
 {
-    sstp_channel_st *ch = &stream->send;
+    sstp_operation_st *op = NULL;
     status_t status = SSTP_FAIL;
     int ret = -1;
+
+    op = stream->send;
+    stream->send = op->next;
 
     /* In case connect timed out */
     if (EV_TIMEOUT & event)
@@ -840,13 +781,14 @@ static void sstp_connect_complete(int sock, short event,
 
     /* Success! */
     status = SSTP_CONNECTED;
+    op->next = stream->cache;
+    stream->cache = op;
 
 done:
 
     /* Propagate the information */
-    ch->complete(stream, NULL, ch->arg, status);
+    op->complete(stream, NULL, op->arg, status);
 }
-
 
 status_t sstp_stream_connect(sstp_stream_st *stream, struct sockaddr *addr,
         int alen, sstp_complete_fn complete, void *arg, int timeout)
@@ -854,15 +796,25 @@ status_t sstp_stream_connect(sstp_stream_st *stream, struct sockaddr *addr,
     int ret = (-1);
 
     /* Create the socket */
-    stream->sock = socket(PF_INET, SOCK_STREAM, 0);
-    if (0 > stream->sock)
+    stream->ssock = socket(PF_INET, SOCK_STREAM, 0);
+    if (0 > stream->ssock)
     {          
         log_err("Could not create socket");
         goto done;
     }
 
+    stream->rsock = dup(stream->ssock);
+
     /* Set socket non-blocking mode */
-    ret = sstp_set_nonbl(stream->sock, 1);
+    ret = sstp_set_nonbl(stream->ssock, 1);
+    if (SSTP_OKAY != ret)
+    {
+        log_err("Unable to set non-blocking operation");
+        goto done;
+    }   
+    
+    /* Set socket non-blocking mode */
+    ret = sstp_set_nonbl(stream->rsock, 1);
     if (SSTP_OKAY != ret)
     {
         log_err("Unable to set non-blocking operation");
@@ -870,18 +822,16 @@ status_t sstp_stream_connect(sstp_stream_st *stream, struct sockaddr *addr,
     }   
     
     /* Set send buffer size */
-    ret = sstp_set_sndbuf(stream->sock, 32768);
+    ret = sstp_set_sndbuf(stream->ssock, 32768);
     if (SSTP_OKAY != ret)      
     {                                              
         log_warn("Unable to set send buffer size", errno);
     }
 
     /* Connect to the server (non-blocking) */
-    ret = connect(stream->sock, addr, alen);
+    ret = connect(stream->ssock, addr, alen);
     if (ret == -1)
     {
-        sstp_channel_st *ch = &stream->send;
-
         /* If we are not blocking b/c of connection in progress */
         if (errno != EINPROGRESS)
         {
@@ -889,27 +839,15 @@ status_t sstp_stream_connect(sstp_stream_st *stream, struct sockaddr *addr,
             goto done;
         }
 
-        /* Setup the send channel */
-        sstp_channel_setup(stream, ch, NULL, timeout, complete, arg);
-
-        /* If the event already exist, free it */
-        if (ch->ev_event)
-        {
-            event_free(ch->ev_event);
-        }
-
-        /* Setup the callback */
-        ch->ev_event = event_new(stream->ev_base, ch->sock, EV_WRITE | EV_TIMEOUT,
-                (event_fn) sstp_connect_complete, stream);
-
-        /* Add event to event-loop */
-        ret = event_add(ch->ev_event, &ch->tout);
-        if (ret != 0)
-        {
-            log_err("Could not add new event");
+        /* Add a send operation */
+        stream->send_cb = (event_fn) sstp_connect_complete;
+        ret = sstp_operation_add_write(stream, NULL, EV_WRITE, 
+                timeout, complete, arg);
+        if (ret != SSTP_OKAY) {
+            log_err("Could not add send event");
             goto done;
         }
-        
+
         return SSTP_INPROG;
     }
 
@@ -919,29 +857,29 @@ status_t sstp_stream_connect(sstp_stream_st *stream, struct sockaddr *addr,
 done:
 
     /* Cleanup */
-    if (stream->sock >= 0)
+    if (stream->ssock >= 0)
     {
-        close(stream->sock);
+        close(stream->ssock);
     }
     
     return SSTP_FAIL;
 }
 
-
 status_t sstp_stream_destroy(sstp_stream_st *stream)
 {
+    sstp_operation_st *ptr = NULL;
     status_t retval = SSTP_FAIL;
     int ret = -1;
     
     /* Get the current socket */
-    if (stream->sock <= 0)
+    if (stream->ssock <= 0)
     {
         log_debug("No socket associated");
         goto done;
     }
 
     /* Set blocking mode */
-    ret = sstp_set_nonbl(stream->sock, 0);
+    ret = sstp_set_nonbl(stream->ssock, 0);
     if (SSTP_OKAY != ret)
     {
         log_warn("Unable to set blocking mode socket");
@@ -955,11 +893,35 @@ status_t sstp_stream_destroy(sstp_stream_st *stream)
     SSL_free(stream->ssl);
     stream->ssl = NULL;
 
-    /* Disconnect the send channel */
-    sstp_channel_disconnect(&stream->send);
+    if (stream->ssock)
+        close(stream->ssock);
 
-    /* Disconnect the receive channel */
-    sstp_channel_disconnect(&stream->recv);
+    if (stream->rsock)
+        close(stream->rsock);
+
+    /* Remove the send event */
+    if (stream->ev_send) 
+    {
+        event_del(stream->ev_send);
+        event_free(stream->ev_send);
+        stream->ev_send = NULL;
+    }
+
+    /* Remove the recv event */
+    if (stream->ev_recv)
+    {
+        event_del(stream->ev_recv);
+        event_free(stream->ev_recv);
+        stream->ev_recv = NULL;
+    }
+
+    /* Free the list of send events */
+    ptr = stream->send;
+    while (ptr) {
+        sstp_operation_st *next = ptr->next;
+        free(ptr);
+        ptr = next;
+    }
 
     /* Free the stream */
     free(stream);
@@ -985,6 +947,8 @@ status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base,
 
     /* Associate stream with ssl context */
     stream_->ev_base = base;
+    stream_->ev_recv = event_new(base, -1, 0, NULL, NULL);
+    stream_->ev_send = event_new(base, -1, 0, NULL, NULL);
     stream_->ssl_ctx = ssl;
     *stream = stream_;
 
