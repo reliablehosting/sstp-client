@@ -302,6 +302,8 @@ static status_t ppp_process_data(sstp_pppd_st *ctx)
             sstp_pppd_check_auth(ctx, tx);
         }
 
+        sstp_pkt_trace(tx);
+
         /* Send a PPP frame */
         ret = sstp_stream_send(ctx->stream, tx, (sstp_complete_fn) 
                 ppp_send_complete, ctx, 1);
