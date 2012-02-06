@@ -18,6 +18,9 @@
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
 
+/* Define to 1 if your system has a working `chown' function. */
+#undef HAVE_CHOWN
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
@@ -61,6 +64,9 @@
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
 
+/* Define to 1 if you have the `mkdir' function. */
+#undef HAVE_MKDIR
+
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
 
@@ -72,6 +78,9 @@
 
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
+
+/* Define to 1 if stdbool.h conforms to C99. */
+#undef HAVE_STDBOOL_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -93,6 +102,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
 
 /* Define to 1 if you have the `strrchr' function. */
 #undef HAVE_STRRCHR
@@ -132,6 +144,9 @@
 
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
+
+/* Define to 1 if the system has the type `_Bool'. */
+#undef HAVE__BOOL
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
@@ -191,6 +206,9 @@
    #define below would cause a syntax error. */
 #undef _UINT8_T
 
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef gid_t
+
 /* Define to rpl_malloc if the replacement function should be used. */
 #undef malloc
 
@@ -202,6 +220,9 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
+
+/* Define to `int' if <sys/types.h> doesn't define. */
+#undef uid_t
 
 /* Define to the type of an unsigned integer type of width exactly 16 bits if
    such a type exists and the standard includes do not define it. */

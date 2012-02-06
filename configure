@@ -12158,6 +12158,98 @@ fi
 
 
 # Checks for header files.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for stdbool.h that conforms to C99" >&5
+$as_echo_n "checking for stdbool.h that conforms to C99... " >&6; }
+if ${ac_cv_header_stdbool_h+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdbool.h>
+#ifndef bool
+ "error: bool is not defined"
+#endif
+#ifndef false
+ "error: false is not defined"
+#endif
+#if false
+ "error: false is not 0"
+#endif
+#ifndef true
+ "error: true is not defined"
+#endif
+#if true != 1
+ "error: true is not 1"
+#endif
+#ifndef __bool_true_false_are_defined
+ "error: __bool_true_false_are_defined is not defined"
+#endif
+
+	struct s { _Bool s: 1; _Bool t; } s;
+
+	char a[true == 1 ? 1 : -1];
+	char b[false == 0 ? 1 : -1];
+	char c[__bool_true_false_are_defined == 1 ? 1 : -1];
+	char d[(bool) 0.5 == true ? 1 : -1];
+	/* See body of main program for 'e'.  */
+	char f[(_Bool) 0.0 == false ? 1 : -1];
+	char g[true];
+	char h[sizeof (_Bool)];
+	char i[sizeof s.t];
+	enum { j = false, k = true, l = false * true, m = true * 256 };
+	/* The following fails for
+	   HP aC++/ANSI C B3910B A.05.55 [Dec 04 2003]. */
+	_Bool n[m];
+	char o[sizeof n == m * sizeof n[0] ? 1 : -1];
+	char p[-1 - (_Bool) 0 < 0 && -1 - (bool) 0 < 0 ? 1 : -1];
+	/* Catch a bug in an HP-UX C compiler.  See
+	   http://gcc.gnu.org/ml/gcc-patches/2003-12/msg02303.html
+	   http://lists.gnu.org/archive/html/bug-coreutils/2005-11/msg00161.html
+	 */
+	_Bool q = true;
+	_Bool *pq = &q;
+
+int
+main ()
+{
+
+	bool e = &s;
+	*pq |= q;
+	*pq |= ! q;
+	/* Refer to every declared value, to avoid compiler optimizations.  */
+	return (!a + !b + !c + !d + !e + !f + !g + !h + !i + !!j + !k + !!l
+		+ !m + !n + !o + !p + !q + !pq);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_cv_header_stdbool_h=yes
+else
+  ac_cv_header_stdbool_h=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_header_stdbool_h" >&5
+$as_echo "$ac_cv_header_stdbool_h" >&6; }
+ac_fn_c_check_type "$LINENO" "_Bool" "ac_cv_type__Bool" "$ac_includes_default"
+if test "x$ac_cv_type__Bool" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE__BOOL 1
+_ACEOF
+
+
+fi
+
+if test $ac_cv_header_stdbool_h = yes; then
+
+$as_echo "#define HAVE_STDBOOL_H 1" >>confdefs.h
+
+fi
+
 for ac_header in   \
     arpa/inet.h     \
     fcntl.h         \
@@ -12661,6 +12753,101 @@ $as_echo "#define HAVE_WORKING_FORK 1" >>confdefs.h
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for uid_t in sys/types.h" >&5
+$as_echo_n "checking for uid_t in sys/types.h... " >&6; }
+if ${ac_cv_type_uid_t+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <sys/types.h>
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "uid_t" >/dev/null 2>&1; then :
+  ac_cv_type_uid_t=yes
+else
+  ac_cv_type_uid_t=no
+fi
+rm -f conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_type_uid_t" >&5
+$as_echo "$ac_cv_type_uid_t" >&6; }
+if test $ac_cv_type_uid_t = no; then
+
+$as_echo "#define uid_t int" >>confdefs.h
+
+
+$as_echo "#define gid_t int" >>confdefs.h
+
+fi
+
+for ac_header in unistd.h
+do :
+  ac_fn_c_check_header_mongrel "$LINENO" "unistd.h" "ac_cv_header_unistd_h" "$ac_includes_default"
+if test "x$ac_cv_header_unistd_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_UNISTD_H 1
+_ACEOF
+
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for working chown" >&5
+$as_echo_n "checking for working chown... " >&6; }
+if ${ac_cv_func_chown_works+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test "$cross_compiling" = yes; then :
+  ac_cv_func_chown_works=no
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$ac_includes_default
+#include <fcntl.h>
+
+int
+main ()
+{
+  char *f = "conftest.chown";
+  struct stat before, after;
+
+  if (creat (f, 0600) < 0)
+    return 1;
+  if (stat (f, &before) < 0)
+    return 1;
+  if (chown (f, (uid_t) -1, (gid_t) -1) == -1)
+    return 1;
+  if (stat (f, &after) < 0)
+    return 1;
+  return ! (before.st_uid == after.st_uid && before.st_gid == after.st_gid);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  ac_cv_func_chown_works=yes
+else
+  ac_cv_func_chown_works=no
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+rm -f conftest.chown
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_func_chown_works" >&5
+$as_echo "$ac_cv_func_chown_works" >&6; }
+if test $ac_cv_func_chown_works = yes; then
+
+$as_echo "#define HAVE_CHOWN 1" >>confdefs.h
+
+fi
+
 for ac_header in stdlib.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "stdlib.h" "ac_cv_header_stdlib_h" "$ac_includes_default"
@@ -12734,8 +12921,10 @@ for ac_func in     \
     localtime_r     \
     memmove         \
     memset          \
+    mkdir           \
     socket          \
     strcasecmp      \
+    strncasecmp     \
     strchr          \
     strdup          \
     strrchr         \

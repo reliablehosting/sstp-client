@@ -98,6 +98,7 @@ AC_SUBST(PPPD_PLUGIN_DIR)
 
 
 # Checks for header files.
+AC_HEADER_STDBOOL
 AC_CHECK_HEADERS([  \
     arpa/inet.h     \
     fcntl.h         \
@@ -121,6 +122,7 @@ AC_TYPE_UINT8_T
 # Checks for library functions.
 AC_FUNC_ALLOCA
 AC_FUNC_FORK
+AC_FUNC_CHOWN
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([    \
     dup2            \
@@ -128,15 +130,17 @@ AC_CHECK_FUNCS([    \
     localtime_r     \
     memmove         \
     memset          \
+    mkdir           \
     socket          \
     strcasecmp      \
+    strncasecmp     \
     strchr          \
     strdup          \
     strrchr         \
     strstr          \
     strtoul         \
     strtoull])
-    
+
 AC_CONFIG_FILES([Makefile
                  sstp-client-1.0.pc
                  src/Makefile
