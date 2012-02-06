@@ -13,12 +13,15 @@ utest_chap_SOURCES  = sstp-chap.c
 utest_chap_CFLAGS   = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_CHAP=1
 utest_fcs_SOURCES   = sstp-fcs.c
 utest_fcs_CFLAGS    = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_FCS=1
+utest_route_SOURCES = sstp-route.c
+utest_route_CFLAGS  = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_ROUTE=1
 
 check_PROGRAMS      =   \
     utest_task          \
     utest_cmac          \
     utest_chap          \
-    utest_fcs
+    utest_fcs           \
+    utest_route
 
 TESTS= $(check_PROGRAMS)
 
@@ -36,6 +39,7 @@ sstpc_SOURCES =         \
     sstp-event.c        \
     sstp-state.c        \
     sstp-chap.c         \
+    sstp-route.c        \
     sstp-fcs.c
 
 noinst_HEADERS  =       \
@@ -50,6 +54,7 @@ noinst_HEADERS  =       \
     sstp-packet.h       \
     sstp-pppd.h         \
     sstp-private.h      \
+    sstp-route.h        \
     sstp-state.h        \
     sstp-stream.h       \
     sstp-task.h         \

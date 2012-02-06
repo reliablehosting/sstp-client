@@ -90,6 +90,7 @@ void sstp_usage_die(const char *prog, int code,
     printf("  --priv-dir               The privilege separation directory\n");
     printf("  --proxy                  Proxy URL\n");
     printf("  --user                   Username\n");
+    printf("  --save-server-route      Add route to VPN server\n");
     printf("  --uuid                   The connection id\n");
     printf("  --version                Display the version information\n\n");
 
@@ -202,6 +203,10 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         ctx->uuid = strdup(optarg);
         break;
 
+    case 14:
+        ctx->enable |= SSTP_OPT_SAVESERVROUTE;
+        break;
+
     default:
         sstp_usage_die(argv[0], -1, "Unrecognized command line option");
         break;
@@ -270,6 +275,7 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         { "proxy",          required_argument, NULL,  0  },
         { "user",           required_argument, NULL,  0  },
         { "uuid",           required_argument, NULL,  0  },
+        { "save-server-route", no_argument,    NULL,  0  },
         { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
     };

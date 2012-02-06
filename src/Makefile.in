@@ -37,7 +37,7 @@ build_triplet = @build@
 host_triplet = @host@
 sbin_PROGRAMS = sstpc$(EXEEXT)
 check_PROGRAMS = utest_task$(EXEEXT) utest_cmac$(EXEEXT) \
-	utest_chap$(EXEEXT) utest_fcs$(EXEEXT)
+	utest_chap$(EXEEXT) utest_fcs$(EXEEXT) utest_route$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
@@ -63,7 +63,7 @@ am_sstpc_OBJECTS = sstpc-sstp-client.$(OBJEXT) \
 	sstpc-sstp-buff.$(OBJEXT) sstpc-sstp-http.$(OBJEXT) \
 	sstpc-sstp-task.$(OBJEXT) sstpc-sstp-event.$(OBJEXT) \
 	sstpc-sstp-state.$(OBJEXT) sstpc-sstp-chap.$(OBJEXT) \
-	sstpc-sstp-fcs.$(OBJEXT)
+	sstpc-sstp-route.$(OBJEXT) sstpc-sstp-fcs.$(OBJEXT)
 sstpc_OBJECTS = $(am_sstpc_OBJECTS)
 sstpc_DEPENDENCIES = libsstp-log/libsstp_log.la \
 	libsstp-api/libsstp_api.la libsstp-compat/libsstp_compat.la
@@ -90,6 +90,12 @@ utest_fcs_OBJECTS = $(am_utest_fcs_OBJECTS)
 utest_fcs_LDADD = $(LDADD)
 utest_fcs_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(utest_fcs_CFLAGS) \
+	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_utest_route_OBJECTS = utest_route-sstp-route.$(OBJEXT)
+utest_route_OBJECTS = $(am_utest_route_OBJECTS)
+utest_route_LDADD = $(LDADD)
+utest_route_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(utest_route_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_utest_task_OBJECTS = utest_task-sstp-task.$(OBJEXT)
 utest_task_OBJECTS = $(am_utest_task_OBJECTS)
@@ -124,10 +130,11 @@ AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(sstpc_SOURCES) $(utest_chap_SOURCES) $(utest_cmac_SOURCES) \
-	$(utest_fcs_SOURCES) $(utest_task_SOURCES)
+	$(utest_fcs_SOURCES) $(utest_route_SOURCES) \
+	$(utest_task_SOURCES)
 DIST_SOURCES = $(sstpc_SOURCES) $(utest_chap_SOURCES) \
 	$(utest_cmac_SOURCES) $(utest_fcs_SOURCES) \
-	$(utest_task_SOURCES)
+	$(utest_route_SOURCES) $(utest_task_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -275,6 +282,8 @@ utest_chap_SOURCES = sstp-chap.c
 utest_chap_CFLAGS = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_CHAP=1
 utest_fcs_SOURCES = sstp-fcs.c
 utest_fcs_CFLAGS = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_FCS=1
+utest_route_SOURCES = sstp-route.c
+utest_route_CFLAGS = -I$(top_srcdir)/include -D__SSTP_UNIT_TEST_ROUTE=1
 TESTS = $(check_PROGRAMS)
 sstpc_SOURCES = \
     sstp-client.c       \
@@ -290,6 +299,7 @@ sstpc_SOURCES = \
     sstp-event.c        \
     sstp-state.c        \
     sstp-chap.c         \
+    sstp-route.c        \
     sstp-fcs.c
 
 noinst_HEADERS = \
@@ -304,6 +314,7 @@ noinst_HEADERS = \
     sstp-packet.h       \
     sstp-pppd.h         \
     sstp-private.h      \
+    sstp-route.h        \
     sstp-state.h        \
     sstp-stream.h       \
     sstp-task.h         \
@@ -407,6 +418,9 @@ utest_cmac$(EXEEXT): $(utest_cmac_OBJECTS) $(utest_cmac_DEPENDENCIES)
 utest_fcs$(EXEEXT): $(utest_fcs_OBJECTS) $(utest_fcs_DEPENDENCIES) 
 	@rm -f utest_fcs$(EXEEXT)
 	$(AM_V_CCLD)$(utest_fcs_LINK) $(utest_fcs_OBJECTS) $(utest_fcs_LDADD) $(LIBS)
+utest_route$(EXEEXT): $(utest_route_OBJECTS) $(utest_route_DEPENDENCIES) 
+	@rm -f utest_route$(EXEEXT)
+	$(AM_V_CCLD)$(utest_route_LINK) $(utest_route_OBJECTS) $(utest_route_LDADD) $(LIBS)
 utest_task$(EXEEXT): $(utest_task_OBJECTS) $(utest_task_DEPENDENCIES) 
 	@rm -f utest_task$(EXEEXT)
 	$(AM_V_CCLD)$(utest_task_LINK) $(utest_task_OBJECTS) $(utest_task_LDADD) $(LIBS)
@@ -427,6 +441,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstpc-sstp-option.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstpc-sstp-packet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstpc-sstp-pppd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstpc-sstp-route.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstpc-sstp-state.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstpc-sstp-stream.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sstpc-sstp-task.Po@am__quote@
@@ -434,6 +449,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utest_chap-sstp-chap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utest_cmac-sstp-cmac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utest_fcs-sstp-fcs.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utest_route-sstp-route.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utest_task-sstp-task.Po@am__quote@
 
 .c.o:
@@ -668,6 +684,22 @@ sstpc-sstp-chap.obj: sstp-chap.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstpc_CFLAGS) $(CFLAGS) -c -o sstpc-sstp-chap.obj `if test -f 'sstp-chap.c'; then $(CYGPATH_W) 'sstp-chap.c'; else $(CYGPATH_W) '$(srcdir)/sstp-chap.c'; fi`
 
+sstpc-sstp-route.o: sstp-route.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstpc_CFLAGS) $(CFLAGS) -MT sstpc-sstp-route.o -MD -MP -MF $(DEPDIR)/sstpc-sstp-route.Tpo -c -o sstpc-sstp-route.o `test -f 'sstp-route.c' || echo '$(srcdir)/'`sstp-route.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/sstpc-sstp-route.Tpo $(DEPDIR)/sstpc-sstp-route.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sstp-route.c' object='sstpc-sstp-route.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstpc_CFLAGS) $(CFLAGS) -c -o sstpc-sstp-route.o `test -f 'sstp-route.c' || echo '$(srcdir)/'`sstp-route.c
+
+sstpc-sstp-route.obj: sstp-route.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstpc_CFLAGS) $(CFLAGS) -MT sstpc-sstp-route.obj -MD -MP -MF $(DEPDIR)/sstpc-sstp-route.Tpo -c -o sstpc-sstp-route.obj `if test -f 'sstp-route.c'; then $(CYGPATH_W) 'sstp-route.c'; else $(CYGPATH_W) '$(srcdir)/sstp-route.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/sstpc-sstp-route.Tpo $(DEPDIR)/sstpc-sstp-route.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sstp-route.c' object='sstpc-sstp-route.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstpc_CFLAGS) $(CFLAGS) -c -o sstpc-sstp-route.obj `if test -f 'sstp-route.c'; then $(CYGPATH_W) 'sstp-route.c'; else $(CYGPATH_W) '$(srcdir)/sstp-route.c'; fi`
+
 sstpc-sstp-fcs.o: sstp-fcs.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(sstpc_CFLAGS) $(CFLAGS) -MT sstpc-sstp-fcs.o -MD -MP -MF $(DEPDIR)/sstpc-sstp-fcs.Tpo -c -o sstpc-sstp-fcs.o `test -f 'sstp-fcs.c' || echo '$(srcdir)/'`sstp-fcs.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/sstpc-sstp-fcs.Tpo $(DEPDIR)/sstpc-sstp-fcs.Po
@@ -731,6 +763,22 @@ utest_fcs-sstp-fcs.obj: sstp-fcs.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sstp-fcs.c' object='utest_fcs-sstp-fcs.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(utest_fcs_CFLAGS) $(CFLAGS) -c -o utest_fcs-sstp-fcs.obj `if test -f 'sstp-fcs.c'; then $(CYGPATH_W) 'sstp-fcs.c'; else $(CYGPATH_W) '$(srcdir)/sstp-fcs.c'; fi`
+
+utest_route-sstp-route.o: sstp-route.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(utest_route_CFLAGS) $(CFLAGS) -MT utest_route-sstp-route.o -MD -MP -MF $(DEPDIR)/utest_route-sstp-route.Tpo -c -o utest_route-sstp-route.o `test -f 'sstp-route.c' || echo '$(srcdir)/'`sstp-route.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utest_route-sstp-route.Tpo $(DEPDIR)/utest_route-sstp-route.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sstp-route.c' object='utest_route-sstp-route.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(utest_route_CFLAGS) $(CFLAGS) -c -o utest_route-sstp-route.o `test -f 'sstp-route.c' || echo '$(srcdir)/'`sstp-route.c
+
+utest_route-sstp-route.obj: sstp-route.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(utest_route_CFLAGS) $(CFLAGS) -MT utest_route-sstp-route.obj -MD -MP -MF $(DEPDIR)/utest_route-sstp-route.Tpo -c -o utest_route-sstp-route.obj `if test -f 'sstp-route.c'; then $(CYGPATH_W) 'sstp-route.c'; else $(CYGPATH_W) '$(srcdir)/sstp-route.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/utest_route-sstp-route.Tpo $(DEPDIR)/utest_route-sstp-route.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sstp-route.c' object='utest_route-sstp-route.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(utest_route_CFLAGS) $(CFLAGS) -c -o utest_route-sstp-route.obj `if test -f 'sstp-route.c'; then $(CYGPATH_W) 'sstp-route.c'; else $(CYGPATH_W) '$(srcdir)/sstp-route.c'; fi`
 
 utest_task-sstp-task.o: sstp-task.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(utest_task_CFLAGS) $(CFLAGS) -MT utest_task-sstp-task.o -MD -MP -MF $(DEPDIR)/utest_task-sstp-task.Tpo -c -o utest_task-sstp-task.o `test -f 'sstp-task.c' || echo '$(srcdir)/'`sstp-task.c
