@@ -534,6 +534,7 @@ int sstp_route_get(sstp_route_ctx_st *ctx, struct sockaddr *dst,
 int sstp_route_init(sstp_route_ctx_st **ctx)
 {
     /* No private context here */
+    return 0;
 }
 
 
