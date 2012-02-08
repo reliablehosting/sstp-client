@@ -29,6 +29,8 @@ struct sstp_route_ctx;
 typedef struct sstp_route_ctx sstp_route_ctx_st;
 
 
+#ifdef HAVE_NETLINK
+
 /*! 
  * @brief Holds either a ipv4 or an ipv6 address
  */
@@ -41,7 +43,6 @@ typedef union
     struct in6_addr in6;
 
 } inet_addr_t;
-
 
 /*!
  * @brief Data structure to hold the route information
@@ -75,9 +76,19 @@ typedef struct
     int oif;
 
     /* The interface name */
-    char ifname[IF_NAMESIZE+1];
+    char ifname[32];
 
 } sstp_route_st;
+
+#else   /* #ifdef HAVE_NETLINK */
+
+typedef struct
+{
+    char ipcmd[512];
+
+} sstp_route_st;
+
+#endif  /* #ifdef HAVE_NETLINK */
 
 
 /*!

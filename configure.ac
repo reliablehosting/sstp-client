@@ -1,6 +1,6 @@
-AC_PREREQ([2.67])
+AC_PREREQ([2.65])
 AC_INIT([sstp-client], 
-        [1.0.3],
+        [1.0.4],
         [http://sourceforge.net/projects/sstp-client])
 
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
@@ -96,6 +96,13 @@ else
 fi
 AC_SUBST(PPPD_PLUGIN_DIR)
 
+# Check if we have netlink support
+AC_CHECK_HEADER([linux/rtnetlink.h],
+    AC_DEFINE(HAVE_NETLINK, 1, [Use netlink to add/remove route]),
+    AC_MSG_WARN([Compiling without netlink support]),
+    [#include <sys/socket.h>
+     #include <linux/netlink.h>])
+AM_CONDITIONAL(NETLINK_SUPPORT, test "${ac_cv_header_linux_rtnetlink_h}" = "yes")
 
 # Checks for header files.
 AC_HEADER_STDBOOL

@@ -30,10 +30,14 @@
 #include <net/if.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include "sstp-private.h"
+
+#ifdef HAVE_NETLINK
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#endif
 
-#include "sstp-route.h"
 
 
 /* Get the end of the netlink message */
@@ -59,6 +63,7 @@ struct sstp_route_ctx
     char buf[1024];
 };
 
+#ifdef HAVE_NETLINK
 
 /*!
  * @brief Receive a netlink message
@@ -458,17 +463,133 @@ void sstp_route_done(sstp_route_ctx_st *ctx)
 }
 
 
+#else   /* #ifdef HAVE_NETLINK */
+
+
+int sstp_route_replace(sstp_route_ctx_st *ctx, sstp_route_st *route)
+{
+    char cmd[255];
+    FILE *proc = NULL;
+
+    snprintf(cmd, sizeof(cmd), "ip route replace %s", route->ipcmd);
+    proc = popen(cmd, "r");
+    if (!proc) 
+    {
+        return -1;
+    }
+
+    pclose(proc);
+}
+
+
+int sstp_route_delete(sstp_route_ctx_st *ctx, sstp_route_st *route)
+{
+    char cmd[255];
+    FILE *proc = NULL;
+
+    snprintf(cmd, sizeof(cmd), "ip route delete %s", route->ipcmd);
+    proc = popen(cmd, "r");
+    if (!proc) 
+    {
+        return -1;
+    }
+
+    pclose(proc);
+}
+
+
+int sstp_route_get(sstp_route_ctx_st *ctx, struct sockaddr *dst,
+        sstp_route_st *route)
+{
+    char cmd[255];
+    char ip[INET6_ADDRSTRLEN];
+    FILE *proc = NULL;
+    char *ptr  = NULL;
+    
+    if (!sstp_ipaddr(dst, ip, sizeof(ip)))
+    {
+        return -1;
+    }
+    
+    snprintf(cmd, sizeof(cmd), "ip route get %s", ip);
+
+    proc = popen(cmd, "r");
+    if (!proc) 
+    {
+        return -1;
+    }
+
+    ptr = fgets(route->ipcmd, sizeof(route->ipcmd), proc);
+    if (!ptr) 
+    {
+        pclose(proc);
+        return -1;
+    }
+
+    pclose(proc);
+    return 0;
+}
+
+
+int sstp_route_init(sstp_route_ctx_st **ctx)
+{
+    /* No private context here */
+}
+
+
+void sstp_route_done(sstp_route_ctx_st *ctx)
+{
+    /* No private context here */
+}
+
+#endif  /* #ifdef HAVE_NETLINK */
+
 #ifdef __SSTP_UNIT_TEST_ROUTE
+
+const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len)
+{
+    const char *retval = NULL;
+
+    switch (addr->sa_family)
+    {
+    case AF_INET:
+    {
+        struct sockaddr_in *in = (struct sockaddr_in*) addr;
+        if (inet_ntop(AF_INET, &in->sin_addr, buf, len))
+        {
+            retval = buf;
+        }
+        break;
+    }
+    case AF_INET6:
+    {
+        struct sockaddr_in6 *in = (struct sockaddr_in6*) addr;
+        if (inet_ntop(AF_INET6, &in->sin6_addr, buf, len))
+        {
+            retval = buf;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    return retval;
+}
+
 
 int main(int argc, char *argv[])
 {
     sstp_route_ctx_st *ctx = NULL;
     sstp_route_st route;
     struct sockaddr_in dst;
+    int retval = EXIT_FAILURE;
+
+#ifdef HAVE_NETLINK
     char src_ip[INET_ADDRSTRLEN];
     char dst_ip[INET_ADDRSTRLEN];
     char gw_ip [INET_ADDRSTRLEN];
-    int retval = EXIT_FAILURE;
+#endif
 
     inet_pton(AF_INET, "4.4.2.2", &dst.sin_addr);
     dst.sin_family = AF_INET;
@@ -485,12 +606,14 @@ int main(int argc, char *argv[])
         goto done;
     }
 
+#ifdef HAVE_NETLINK
     inet_ntop(AF_INET, &route.gwy, gw_ip, sizeof(gw_ip));
     inet_ntop(AF_INET, &route.src, src_ip, sizeof(src_ip));
     inet_ntop(AF_INET, &route.dst, dst_ip, sizeof(dst_ip));
 
     printf("Got route to %s from %s via %s dev %s\n",
         dst_ip, src_ip, gw_ip, route.ifname);
+#endif
 
     /* Only if we run as root, test the add/del of the route */
     if (getuid() == 0)
@@ -501,18 +624,21 @@ int main(int argc, char *argv[])
             goto done;
         }
 
+#ifdef HAVE_NETLINK
         printf("Added route to %s via %s\n", dst_ip, 
                 route.ifname);
-
+#endif
         if (sstp_route_delete(ctx, &route))
         {
             printf("Could not del route\n");
             goto done;
         }
 
+#ifdef HAVE_NETLINK
         printf("Deleted route to %s via %s\n", dst_ip, 
                 route.ifname);
-    }
+#endif
+}
 
     retval = EXIT_SUCCESS;
 

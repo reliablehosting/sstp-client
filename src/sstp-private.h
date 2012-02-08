@@ -75,6 +75,7 @@ typedef struct timeval timeval_st;
 #include "sstp-pppd.h"
 #include "sstp-cmac.h"
 #include "sstp-packet.h"
+#include "sstp-route.h"
 #include "sstp-task.h"
 #include "sstp-fcs.h"
 #include "sstp-http.h"
