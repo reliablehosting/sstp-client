@@ -204,7 +204,7 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 14:
-        ctx->enable |= SSTP_OPT_SAVESERVROUTE;
+        ctx->enable |= SSTP_OPT_SAVEROUTE;
         break;
 
     default:

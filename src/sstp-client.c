@@ -608,6 +608,13 @@ static void sstp_client_free(sstp_client_st *client)
         client->event = NULL;
     }
 
+    /* Free the route context */
+    if (client->route_ctx)
+    {
+        sstp_route_done(client->route_ctx);
+        client->route_ctx = NULL;
+    }
+
     /* Free the options */
     sstp_option_free(&client->option);
 
@@ -688,7 +695,7 @@ int main(int argc, char *argv[])
     {
         sstp_die("Could not initialize signal handling", -1);
     }
-    
+   
     /* Parse the arguments */
     ret = sstp_parse_argv(&option, argc, argv);
     if (SSTP_OKAY != ret)
@@ -778,6 +785,29 @@ int main(int argc, char *argv[])
     {
         sstp_die("Could not connect to `%s'", -1, client.host.name);
     }
+
+    /* Add a server route if we are asked to */
+    if (option.enable & SSTP_OPT_SAVEROUTE)
+    {
+        ret = sstp_route_init(&client.route_ctx);
+        if (SSTP_OKAY != ret)
+        {
+            sstp_die("Could not initialize route module", -1);
+        }
+
+        ret = sstp_route_get(client.route_ctx, &client.host.addr,
+                &client.route);
+        if (ret != 0)
+        {
+            sstp_die("Could not get server route", -1);
+        }
+
+        ret = sstp_route_replace(client.route_ctx, &client.route);
+        if (ret != 0)
+        {
+          sstp_die("Could not replace server route", -1);
+        }
+    }
     
     /* Wait for the connect to finish and then continue */
     ret = event_base_dispatch(client.ev_base);
@@ -802,6 +832,16 @@ int main(int argc, char *argv[])
         log_info("Received %s, sent %s", 
                 sstp_norm_data(detail.rx_bytes, buf1, sizeof(buf1)),
                 sstp_norm_data(detail.tx_bytes, buf2, sizeof(buf2)));
+    }
+
+    /* Remove the server route */
+    if (option.enable & SSTP_OPT_SAVEROUTE)
+    {
+        ret = sstp_route_delete(client.route_ctx, &client.route);
+        if (SSTP_OKAY != ret)
+        {
+            log_warn("Could not remove the server route");
+        }
     }
 
     /* Release allocated resources */

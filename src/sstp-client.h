@@ -76,6 +76,12 @@ typedef struct
     /*! The ip-up notification helper */
     sstp_event_st *event;
 
+    /*! The particular server route */
+    sstp_route_st route;
+
+    /*! The route context */
+    sstp_route_ctx_st *route_ctx;
+
     /*! The SSL context */
     SSL_CTX *ssl_ctx;
 

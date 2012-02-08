@@ -32,7 +32,7 @@
 #define SSTP_OPT_DEBUG          0x0004
 #define SSTP_OPT_NOPLUGIN       0x0008
 #define SSTP_OPT_CERTWARN       0x0010
-#define SSTP_OPT_SAVESERVROUTE  0x0020
+#define SSTP_OPT_SAVEROUTE      0x0020
 
 
 /*!
