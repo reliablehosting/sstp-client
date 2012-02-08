@@ -102,7 +102,6 @@ AC_CHECK_HEADER([linux/rtnetlink.h],
     AC_MSG_WARN([Compiling without netlink support]),
     [#include <sys/socket.h>
      #include <linux/netlink.h>])
-AM_CONDITIONAL(NETLINK_SUPPORT, test "${ac_cv_header_linux_rtnetlink_h}" = "yes")
 
 # Checks for header files.
 AC_HEADER_STDBOOL
