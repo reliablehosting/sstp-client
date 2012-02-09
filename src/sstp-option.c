@@ -204,6 +204,8 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
         break;
 
     case 14:
+	if (getuid() != 0)
+           sstp_die("Can only save server route when run as root", -1);
         ctx->enable |= SSTP_OPT_SAVEROUTE;
         break;
 
