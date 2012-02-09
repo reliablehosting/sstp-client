@@ -3,7 +3,7 @@
  *
  * @file sstp-route.c
  *
- * @author Copyright (C) 2011 Eivind Naess, 
+ * @author Copyright (C) 2012 Eivind Naess, 
  *      All Rights Reserved
  *
  * @par License:

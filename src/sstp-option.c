@@ -66,7 +66,7 @@ void sstp_usage_die(const char *prog, int code,
     int ret = (-1);
 
     printf("%s v%s\n", PACKAGE_NAME, PACKAGE_VERSION);
-    printf("Copyright (C) Eivind Naess 2011, All Rights Reserved\n\n");
+    printf("Copyright (C) Eivind Naess 2011-2012, All Rights Reserved\n\n");
     printf("License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n");
     printf("This is free software: you are free to change and redistribute it.\n");
     printf("There is NO WARRANTY, to the extent permitted by law.\n\n");

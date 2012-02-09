@@ -87,6 +87,12 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
+* Wed Feb 8 2012 Eivind Naess <evinaes@yahoo.com> - 1.0.4-1 
+  * Added ability to add host route thanks to Dmitriy Belokurov for providing the inital patch.
+  * Fixed various bugs, to mention:
+    - Disconnect of SSL connection during multiple SSL_write() with inconsitent buffers.
+    - Perform the authentication after IP is up
+
 * Sun Nov 13 2011 Eivind Naess <eivnaes@yahoo.com> - 1.0.3-1
   * Added command line option to specify the uuid of the connection
   * Fixed various bugs, to mention:
