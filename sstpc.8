@@ -32,6 +32,9 @@ Specify the CA certificate used to verify the server with
 .B \-\-ca-dir
 Specify the directory of certificates that contains the CA certificate. If nothing is specified, the system's wide directory is used.
 .TP
+.B \-\-cert-warn
+Ignore certificate warnings like common name instead of terminating the connection.
+.TP
 .B \-\-debug
 Run in foreground (for debugging with gdb)
 .TP
@@ -52,6 +55,40 @@ as a
 connection process using the
 .B pty
 option. See EXAMPLES.
+.TP
+.B \-\-password
+Specify a password per command line instead of setting it up in a configuration file for 
+.B pppd
+in /etc/ppp/peers.
+.TP
+.B \-\-proxy
+Connect to the SSTP server via a proxy on your network. The syntax is http://[<user>:<pass>@]<domain>:port.
+.TP
+.B \-\-priv-user
+Specify the privilege separation user to run 
+.B sstpc
+.TP
+.B \-\-priv-group
+Specify the privilege separation group to run 
+.B sstpc
+.TP
+.B \-\-priv-dir
+Specify the privilege separation directory for the chroot jail to run
+.B sstpc
+.TP
+.B \-\-user
+Specify the username to authenticate to the SSTP server instead of setting it up in a configuration file for
+.B pppd
+in /etc/ppp/peers.
+.TP
+.B \-\-save-server-route
+This will automatically add and remove a route to the SSTP server.
+.TP
+.B \-\-uuid
+Specify a UUID for the connection to simplify the server end debugging.
+.SS Troubleshooting
+The following options are available to help troubleshoot
+.B sstpc
 .TP
 .B \-\-log-level <level>
 Set the debug level for debugging the
