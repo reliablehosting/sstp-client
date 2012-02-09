@@ -30,6 +30,7 @@
 #include <net/if.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "sstp-private.h"
 
@@ -186,10 +187,6 @@ static int sstp_route_newmsg(sstp_route_ctx_st *ctx,
 {
     struct nlmsghdr *nlh;
     struct rtmsg *rtm;
-    struct rtattr *rta;
-    int retval = -1;
-    int len = 0;
-    int rtl = 0;
 
     memset(ctx->buf, 0, sizeof(ctx->buf));
 

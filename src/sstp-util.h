@@ -103,6 +103,18 @@ const char *sstp_ipaddr(struct sockaddr *addr, char *buf, int len);
 
 
 /*!
+ * @brief Convert a username into the actual uid value
+ */
+int sstp_get_uid(const char *name);
+
+
+/*!
+ * @brief Convert a group name into the actua gid value
+ */
+int sstp_get_gid(const char *name);
+
+
+/*!
  * @brief Create a new directory @a path and change it's permissions to user and group
  */
 int sstp_create_dir(const char *path, const char *user, const char *group, mode_t mode);

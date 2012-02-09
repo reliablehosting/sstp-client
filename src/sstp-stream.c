@@ -242,7 +242,6 @@ static int sstp_operation_add_read(sstp_stream_st *ctx,
     void *arg)
 {
     int retval = SSTP_FAIL;
-    int pend   = 0;
     int ret    = 0;
 
     sstp_operation_st *op = &ctx->recv;
@@ -294,7 +293,6 @@ static int sstp_operation_add_write(sstp_stream_st *ctx,
     void *arg)
 {
     sstp_operation_st *op = NULL;
-    sstp_operation_st *ptr = ctx->send;
     int ret  = SSTP_FAIL;
     int pend = 0;
 
@@ -455,7 +453,6 @@ status_t sstp_stream_recv_http(sstp_stream_st *ctx, sstp_buff_st *buf,
 status_t sstp_stream_recv_plain(sstp_stream_st *ctx, sstp_buff_st *buf, 
         sstp_complete_fn complete, void *arg, int timeout)
 {
-    sstp_operation_st *op = &ctx->recv;
     status_t status = SSTP_FAIL;
     int ret = 0;
 
@@ -484,7 +481,6 @@ done:
 status_t sstp_stream_recv(sstp_stream_st *ctx, sstp_buff_st *buf, 
         sstp_complete_fn complete, void *arg, int timeout)
 {
-    sstp_operation_st *op = &ctx->recv;
     status_t status = SSTP_FAIL;
     short event = 0;
     int ret = 0;
@@ -536,7 +532,6 @@ status_t sstp_stream_recv_sstp(sstp_stream_st *ctx, sstp_buff_st *buf,
         sstp_complete_fn complete, void *arg, int timeout)
 {
     status_t status = SSTP_FAIL;
-    short event = 0;
     int ret = 0;
 
     /* Activity Timer */
@@ -588,8 +583,6 @@ done:
 void sstp_stream_setrecv(struct sstp_stream *ctx, sstp_recv_fn recv_cb,
     sstp_buff_st *buf, sstp_complete_fn complete, void *arg, int timeout)
 {
-    short event = EV_READ;
-
     /* Setup the channel */
     ctx->recv_cb = recv_cb;
     sstp_operation_add_read(ctx, buf, EV_READ, timeout, 
@@ -666,7 +659,6 @@ status_t sstp_stream_send_plain(sstp_stream_st *stream, sstp_buff_st *buf,
 status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     sstp_complete_fn complete, void *arg, int timeout)
 {
-    status_t status = SSTP_FAIL;
     int ret = 0;
 
     stream->last = time(NULL);
