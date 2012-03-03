@@ -78,6 +78,7 @@ rm -rf /var/run/sstpc
 %{_libdir}/libsstp_api*.so*
 %{_libdir}/pppd/%ppp_version/sstp-pppd-plugin*.so*
 %{_libdir}/pkgconfig/sstp-client*.pc
+%{_docdir}/sstp-client/sstp-test*
 
 %exclude %{_libdir}/*.la
 %exclude %{_libdir}/pppd/%ppp_version/*.la
