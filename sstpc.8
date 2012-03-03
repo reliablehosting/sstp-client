@@ -111,21 +111,59 @@ Include file and line number with the log messages
 Filter the logs by a particular set of files, e.g: sstp-packet,sstp-state
 
 .SH "EXAMPLES"
-
-.B Connection to a Microsoft Windows RAS Service using SSTP protocol
+Connection to a Microsoft Windows RAS Service using SSTP protocol
 .TP
-.B Invoking sstpc using the pty command
-pppd noauth nobsdcomp nodeflate name domain\\\\\\\\username remotename SSTPC pty "sstpc test.sstp-test.net \-\-nolaunchpppd" plugin sstp-pppd-plugin.so sstp-sock /tmp/sstpc-uds-sock
+Setup the peer scripts in /etc/ppp/peers, you may start by cloning one of the scripts available in your docs directory, /usr/share/doc/sstp-client, or /usr/local/share/doc/sstp-client. The general content of this file will be close to the following:
+.IP
+# Example Content of /etc/ppp/peers/sstp-test
+.br
+remotename  sstp-test
+.br
+linkname    sstp-test
+.br
+ipparam     sstp-test
+.br
+pty         "sstpc \-\-ipparam sstp\-test \-\-nolaunchpppd sstp\-test.yourdomain.com"
+.br
+name        eivnaes
+.br
+plugin      sstp-pppd-plugin.so
+.br
+sstp-sock   /var/run/sstpc/sstpc-sstp-test
+.br
+usepeerdns
+.br
+require-mppe
+.br
+require-mschap-v2
+.br
+refuse-eap
+.br
+refuse-pap
+.br
+refuse-chap
+.br
+refuse-mschap
+.br
+nobsdcomp
+.br
+nodeflate
 .TP
-.B Invoking sstpc using the the call command
-sstpc n3zz-dc1.sstp-test.net call sstp-test-nopty
+Note that the \fBchap\-secrets\fR file used by \fBpppd\fR must include an entry for domain\\\\username. For the sstp-test example, the user eivnaes will have a equivalent entry in the /etc/ppp/chap-secrets file.
+
+# Secrets for authentication using CHAP
+.br
+# client        server  secret          IP addresses
+.br
+eivnaes         *       xxxxxx          *
 .TP
-
-The sstp-test-nopty is a pppd script located in /etc/ppp/peers/<name>, location is dependent on your distribution.
-
-.PP
-Note that the \fBchap\-secrets\fR file used by \fBpppd\fR must include an entry for domain\\\\username.
-
+Starting the sstp-test using the pon script
+.B sudo pon sstp-test
+.TP
+Invoking sstpc using the the call command
+.B sstpc \-\-ipparam sstp\-test sstp-test.yourdomain.com call sstp-test-nopty
+.TP
+The sstp-test-nopty is a pppd script you need to create in /etc/ppp/peers, and you can clone the example sstp-test above; but you must omit the \fBpty\fR statement in the peers configuration.
 .SH "SEE ALSO"
 .IR pppd (8)
 .PP
