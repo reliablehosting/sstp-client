@@ -104,11 +104,11 @@ static void sstp_send_notify(unsigned char *skey, int slen,
 
     /* Add the MPPE Send Key */
     sstp_api_attr_add(msg, SSTP_API_ATTR_MPPE_SEND, 
-            MPPE_MAX_KEY_LEN, mppe_send_key);
+            MPPE_MAX_KEY_LEN, skey);
 
     /* Add the MPPE Recv Key */
     sstp_api_attr_add(msg, SSTP_API_ATTR_MPPE_RECV, 
-            MPPE_MAX_KEY_LEN, mppe_recv_key);
+            MPPE_MAX_KEY_LEN, rkey);
 
     /* Send the structure */
     ret = send(sock, msg, sstp_api_msg_len(msg), 0);
@@ -134,8 +134,7 @@ static void sstp_send_notify(unsigned char *skey, int slen,
  * 
  * @par Note:
  *  IF MPPE was enabled, the keys have been zeroed out for security
- *  reasons. We should have already notified sstpc. If we reach this
- *  code, ip-up was invoked and auth-type was not mschap-v2.
+ *  reasons. 
  *
  *  You can configure PAP, CHAP-MD5 and MSCHAP with the NAP service,
  *  these are disabled by Microsoft 2008 server by default.
