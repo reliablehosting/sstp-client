@@ -2,7 +2,7 @@
 %define event_version 2.0.10
 
 Name:		sstp-client
-Version:	1.0.4
+Version:	1.0.5
 Release:	1%{?dist}
 Summary:	Secure Socket Tunneling Protocol (SSTP) Client
 Group:		Applications/Internet
@@ -87,6 +87,10 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
+* Sat Mar 3 2012 Eivind Naess <evinaes@yahoo.com> - 1.0.5-1 
+  * Fixed a critical bug in the sstp pppd plugin that caused the connection to fail.
+  * Updated the documentation to better describe how to setup sstp-client
+
 * Wed Feb 8 2012 Eivind Naess <evinaes@yahoo.com> - 1.0.4-1 
   * Added ability to add host route thanks to Dmitriy Belokurov for providing the inital patch.
   * Fixed various bugs, to mention:

@@ -1,3 +1,10 @@
+sstp-client (1.0.5) oneiric; urgency=low
+
+  * Fixed a critical bug in the pppd plugin, connection would fail after
+    60 seconds as the MPPE keys wasn't set correctly.
+  * Updated the documentation and added a couple of pppd peers examples 
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 03 Mar 2012 20:00:00 -0800
 sstp-client (1.0.4) oneiric; urgency=low
 
   * Added command line to save host route
