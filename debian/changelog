@@ -1,3 +1,9 @@
+sstp-client (1.0.6) oneiric; urgency=low
+
+  * Fixed a critical bug where the pppd configuration file was deleted before 
+    authentication could proceed (use of --user <user> and --password <pass>).
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 12 Mar 2012 20:00:00 -0800
 sstp-client (1.0.5) oneiric; urgency=low
 
   * Fixed a critical bug in the pppd plugin, connection would fail after

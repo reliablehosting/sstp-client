@@ -154,6 +154,26 @@ static void ppp_send_complete(sstp_stream_st *stream, sstp_buff_st *buf,
 }
 
 
+/*!
+ * @brief Delete the temporary file at our earliest convenience.
+ */
+static void sstp_pppd_deltmp(sstp_pppd_st *ctx)
+{
+    if (!ctx->del_file)
+    {
+        return;
+    }
+
+    if (0 > unlink(ctx->tmpfile))
+    {
+        log_warn("Could not remove temporary file, %m (%d)", 
+                errno);
+    }
+    
+    ctx->del_file = 0;
+}
+
+
 /*! 
  * @brief Retrieve the CHAP context
  */
@@ -207,11 +227,13 @@ static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
             log_info("Unsupported");
             break;
         }
+        
+        sstp_pppd_deltmp(ctx);
         break;
 
     case SSTP_PPP_AUTH_PAP:
         
-        log_info("PAP");
+        sstp_pppd_deltmp(ctx);
 
         /* No need to set the MPPE keys, they are all zero */
         //ret = sstp_state_accept(ctx->state);
@@ -219,22 +241,10 @@ static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
         {
             sstp_die("Negotiation with server failed", -1);
         }
-
+        
     default:
 
         break;
-    }
-
-    /* Delete the file at our earliest convenience */
-    if (ctx->del_file)
-    {
-        if (0 > unlink(ctx->tmpfile))
-        {
-            log_warn("Could not remove temporary file, %m (%d)", 
-                    errno);
-        }
-        
-        ctx->del_file = 0;
     }
 }
 
@@ -612,17 +622,7 @@ void sstp_pppd_free(sstp_pppd_st *ctx)
         return;
     }
 
-    /* Delete the temporary file */
-    if (ctx->del_file)
-    {
-        if (0 > unlink(ctx->tmpfile))
-        {
-            log_warn("Could not remove temporary file, %m (%d)", 
-                    errno);
-        }
-        
-        ctx->del_file = 0;
-    }
+    sstp_pppd_deltmp(ctx);
 
     /* Cleanup the task */
     if (ctx->task)
