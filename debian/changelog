@@ -4,6 +4,7 @@ sstp-client (1.0.6) oneiric; urgency=low
     authentication could proceed (use of --user <user> and --password <pass>).
 
  -- Eivind Naess <eivnaes@yahoo.com>  Sat, 12 Mar 2012 20:00:00 -0800
+
 sstp-client (1.0.5) oneiric; urgency=low
 
   * Fixed a critical bug in the pppd plugin, connection would fail after
@@ -11,6 +12,7 @@ sstp-client (1.0.5) oneiric; urgency=low
   * Updated the documentation and added a couple of pppd peers examples 
 
  -- Eivind Naess <eivnaes@yahoo.com>  Sat, 03 Mar 2012 20:00:00 -0800
+
 sstp-client (1.0.4) oneiric; urgency=low
 
   * Added command line to save host route
@@ -18,6 +20,7 @@ sstp-client (1.0.4) oneiric; urgency=low
     - Disconnect of SSL connection when handling multiple SSL_write()
 
  -- Eivind Naess <eivnaes@yahoo.com>  Wed, 07 Feb 2012 16:00:00 -0800
+
 sstp-client (1.0.3) oneiric; urgency=low
 
   * Added command line option to specify the uuid of the connection
@@ -29,6 +32,7 @@ sstp-client (1.0.3) oneiric; urgency=low
     - Added hardening of ubuntu build scripts
 
  -- Eivind Naess <eivnaes@yahoo.com>  Sat, 12 Nov 2011 16:00:00 -0800
+
 sstp-client (1.0.2) oneiric; urgency=low
 
   * Added http proxy support, using basic authentication
@@ -38,6 +42,7 @@ sstp-client (1.0.2) oneiric; urgency=low
   * Fixing various bugs
 
  -- Eivind Naess <eivnaes@yahoo.com>  Sat, 22 Oct 2011 08:00:00 -0800
+
 sstp-client (1.0.1) oneiric; urgency=low
 
   * Fixing various bug fixes found while porting to Fedora Core 15.
@@ -45,6 +50,7 @@ sstp-client (1.0.1) oneiric; urgency=low
   * Improved handling of pppd upon termination.
 
  -- Eivind Naess <eivnaes@yahoo.com>  Sat, 18 Sept 2011 08:00:00 -0800
+
 sstp-client (1.0) oneiric; urgency=low
 
   * Initial release

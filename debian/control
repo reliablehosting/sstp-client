@@ -1,12 +1,14 @@
 Source: sstp-client
 Section: net
 Priority: optional
-Maintainer: Eivind Naess <eivnaes@yahoo.com>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Uploaders: Eivind Naess <eivnaes@yahoo.com>
 Build-Depends:
  debhelper (>= 8),
  ppp-dev,
  libevent-dev,
  libssl-dev,
+ hardening-includes,
  hardening-wrapper
 Standards-Version: 3.9.1
 Vcs-Svn: https://sstp-client.svn.sourceforge.net/svnroot/sstp-client
