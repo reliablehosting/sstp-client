@@ -21,9 +21,14 @@
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <config.h>
 #include <errno.h>
 #include <fcntl.h>
+#ifdef HAVE_PTY_H
 #include <pty.h>
+#else
+#include <util.h>
+#endif
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -166,7 +171,7 @@ status_t sstp_task_start(sstp_task_st *task, const char *argv[])
         sstp_task_close(task);
         
         /* Execute the command given */
-        execv(argv[0], (char**) argv);
+        execv(argv[0], (char**) &argv[1]);
 
         /* If we ever could reach here ... */
         exit(-1);
@@ -286,23 +291,23 @@ void sstp_task_destroy(sstp_task_st *task)
 
 #include <stdio.h>
 
-#define TEST_STRING "Hello World\n"
+#define TEST_STRING "Hello World"
 
 int main(void)
 {
-    const char *args[10];
+    const char *args[10] = {};
     sstp_task_st *task;
     int i = 0;
     int ret = 0;
-    char buf[13] = {};
+    char buf[12] = {};
 
     args[i++] = "/bin/echo";
-    args[i++] = "-e";
+    args[i++] = "-n";
     args[i++] = TEST_STRING;
     args[i++] = NULL;
 
     /* Create the task */
-    ret = sstp_task_new(&task, SSTP_TASK_USEPIPE);
+    ret = sstp_task_new(&task, SSTP_TASK_USEPTY);
     if (SSTP_OKAY != ret)
     {
         printf("Could not create task\n");
@@ -328,7 +333,7 @@ int main(void)
     /* Make sure it's correct */
     if (strcmp(buf, TEST_STRING))
     {
-        printf("The read data was not \"%s\"", TEST_STRING);
+        printf("The read data was not \"%s\"\n", TEST_STRING, buf);
         return EXIT_FAILURE;
     }
 

@@ -63,7 +63,6 @@ typedef struct timeval timeval_st;
 #include <sstp-compat.h>
 #include <sstp-common.h>
 #include <sstp-log.h>
-#include <config.h>
 
 #include "sstp-buff.h"
 #include "sstp-stream.h"

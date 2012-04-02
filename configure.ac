@@ -114,6 +114,7 @@ AC_CHECK_HEADERS([  \
     stdlib.h        \
     string.h        \
     syslog.h        \
+    pty.h           \
     sys/types.h     \
     sys/socket.h    \
     unistd.h])

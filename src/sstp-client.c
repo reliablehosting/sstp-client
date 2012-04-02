@@ -22,6 +22,7 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -518,7 +519,7 @@ static status_t sstp_client_lookup(sstp_url_st *uri, sstp_peer_st *peer)
     }
 
     /* Save the results for later */
-    strncpy(peer->name, list->ai_canonname, sizeof(peer->name));
+    strncpy(peer->name, (list->ai_canonname) ? : uri->host, sizeof(peer->name));
     memcpy(&peer->addr, list->ai_addr, sizeof(peer->addr));
     peer->alen = list->ai_addrlen;
 

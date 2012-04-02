@@ -12273,6 +12273,7 @@ for ac_header in   \
     stdlib.h        \
     string.h        \
     syslog.h        \
+    pty.h           \
     sys/types.h     \
     sys/socket.h    \
     unistd.h

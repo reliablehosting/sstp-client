@@ -79,6 +79,9 @@
 /* Define if you have PPP support */
 #undef HAVE_PPP_PLUGIN
 
+/* Define to 1 if you have the <pty.h> header file. */
+#undef HAVE_PTY_H
+
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
 

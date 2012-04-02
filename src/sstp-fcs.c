@@ -16,6 +16,7 @@
  *  [9]   LeVan, J., "A Fast CRC", Byte, November 1987.
  */
 
+#include <config.h>
 #include <string.h>
 #include <sys/types.h>
 #include "sstp-private.h"
