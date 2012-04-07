@@ -38,13 +38,23 @@
 #ifdef HAVE_NETLINK
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#endif
-
-
 
 /* Get the end of the netlink message */
 #define NLMSG_TAIL(n) \
     (((void*)(n)) + NLMSG_ALIGN((n)->nlmsg_len))
+
+#endif
+
+#ifdef __APPLE__
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/route.h>
+
+#define SA_ALIGN(len) (((len)+3) & ~3 )
+#define SA_SIZE(sa) \
+    (sa)->sa_len ? SA_ALIGN(sa->sa_len) : sizeof(u_int32_t)
+
+#endif
 
 
 /*! 
@@ -65,6 +75,331 @@ struct sstp_route_ctx
     char buf[1024];
 };
 
+
+#if defined(__APPLE__)
+
+
+/*! 
+ * @brief Send a route message, and wait for the corresponding ACK
+ */
+static int sstp_route_talk(sstp_route_ctx_st *ctx, unsigned char *buf, int blen)
+{
+    struct rt_msghdr *rtm = (struct rt_msghdr*) buf;
+    pid_t pid  = getpid();
+    int retval = 0;
+    int len    = 0;
+
+    do
+    {
+        len = write(ctx->sock, buf, blen);
+        if (len < 0 && errno != EINTR)
+        {
+            goto done;
+        }
+    } while (len == -1);
+
+    do 
+    {
+        len = read(ctx->sock, ctx->buf, sizeof(ctx->buf));
+        if (len < 0 && errno != EINTR)
+        {
+            goto done;
+        }
+    } while (len > 0 && (rtm->rtm_seq != ctx->seq || rtm->rtm_pid != pid));
+
+    if (rtm->rtm_version != RTM_VERSION)
+        goto done;
+
+    if (rtm->rtm_msglen != len)
+        goto done;
+
+    if (rtm->rtm_errno)
+        goto done;
+
+    retval = 0;
+
+done:
+
+    return retval;
+}
+
+
+/*!
+ * @brief Convert a inet_addr_t structure to correct sockaddr
+ */
+static int sstp_route_tosockaddr(struct sockaddr *sa, int family, inet_addr_t *addr)
+{
+    if (AF_INET == family) 
+    {
+        struct sockaddr_in *in = (struct sockaddr_in*) sa;
+        in->sin_family = AF_INET;
+        in->sin_port   = 0;
+        memcpy(&in->sin_addr, &addr->in4, sizeof(addr->in4));
+        sa->sa_len = sizeof(struct sockaddr_in);
+        return 0;
+    }
+
+    if (AF_INET6 == family)
+    {
+        struct sockaddr_in6 *in6 = (struct sockaddr_in6*) sa;
+        in6->sin6_family = AF_INET6;
+        memcpy(&in6->sin6_addr, &addr->in6, sizeof(addr->in6));
+        sa->sa_len = sizeof(addr->in6);
+        return 0;
+    }
+
+    return -1;
+}
+
+
+/*!
+ * @brief Convert a sockaddr structure to inet_addr_t
+ */
+static int sstp_route_toinetaddr(struct sockaddr *sa, int family, inet_addr_t *addr)
+{
+    if (AF_INET == family) 
+    {
+        struct sockaddr_in *in = (struct sockaddr_in*) sa;
+        memcpy(&addr->in4, &in->sin_addr, sizeof(addr->in4));
+    }
+
+    if (AF_INET6 == family)
+    {
+        struct sockaddr_in6 *in6 = (struct sockaddr_in6*) sa;
+        memcpy(&addr->in6, &in6->sin6_addr, sizeof(addr->in6));
+    }
+ }
+
+
+/*!
+ * @brief Create a new route message
+ */
+static int sstp_route_newmsg(sstp_route_ctx_st *ctx, 
+        sstp_route_st *route, int cmd, int flags)
+{
+    struct sockaddr_dl *sdl = NULL;
+    struct rt_msghdr *rtm   = NULL;
+    struct sockaddr  *sa    = NULL;
+    int retval = -1;
+    int len = 0;
+    char *cp = NULL;
+
+    memset(ctx->buf, 0, sizeof(ctx->buf));
+
+    /* Setup the route message */
+    rtm = (struct rt_msghdr*) ctx->buf;
+    rtm->rtm_version = RTM_VERSION;
+    rtm->rtm_type    = cmd;
+    rtm->rtm_flags   = flags;
+    rtm->rtm_seq     = ++ctx->seq;
+    rtm->rtm_pid     = getpid();
+    rtm->rtm_msglen  = sizeof(struct rt_msghdr);
+    cp = (char*) (rtm + 1);
+
+    if (route->have.dst)
+    {
+        rtm->rtm_addrs |= RTA_DST;
+        sa = (struct sockaddr*) cp;
+        sstp_route_tosockaddr(sa, route->family, &route->dst);
+        rtm->rtm_msglen += sa->sa_len;
+        cp += SA_SIZE(sa);
+    }
+
+    if (route->have.gwy) 
+    {
+        rtm->rtm_addrs |= RTA_GATEWAY;
+        sa = (struct sockaddr*) cp;
+        sstp_route_tosockaddr(sa, route->family, &route->gwy);
+        rtm->rtm_msglen += sa->sa_len;
+        cp += SA_SIZE(sa);
+    }
+
+    if (route->have.oif)
+    {
+        rtm->rtm_addrs |= RTA_IFP;
+        sdl = (struct sockaddr_dl*) cp;
+        sdl->sdl_len = sizeof(struct sockaddr_dl);
+        sdl->sdl_family = AF_LINK;
+        sdl->sdl_nlen = strlen(route->ifname);
+        strncpy(sdl->sdl_data, route->ifname, sdl->sdl_nlen);
+        rtm->rtm_msglen += sdl->sdl_len;
+        cp += SA_SIZE(((struct sockaddr*)sdl));
+    }
+
+    return rtm->rtm_msglen;
+}
+
+
+int sstp_route_get(sstp_route_ctx_st *ctx, struct sockaddr *dst,
+        sstp_route_st *route)
+{
+    struct rt_msghdr *rtm;
+    struct sockaddr  *sa;
+    struct sockaddr_dl *sdl;
+    int retval = -1;
+    int len = 0;
+    char *cp = NULL;
+    int i;
+
+    memset(ctx->buf, 0, sizeof(ctx->buf));
+    memset(route, 0, sizeof(*route));
+
+    /* Setup the route message */
+    rtm = (struct rt_msghdr*) ctx->buf;
+    rtm->rtm_version = RTM_VERSION;
+    rtm->rtm_type    = RTM_GET;
+    rtm->rtm_flags   = RTF_STATIC | RTF_UP | RTF_HOST;
+    rtm->rtm_addrs   = RTA_DST | RTA_IFP;
+    rtm->rtm_seq     = ++ctx->seq;
+    rtm->rtm_pid     = getpid();
+    rtm->rtm_msglen  = sizeof(struct rt_msghdr);
+
+    sa = (struct sockaddr *) (rtm + 1);
+    memcpy(sa, dst, dst->sa_len);
+    sa->sa_len = dst->sa_family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+    sa->sa_family = dst->sa_family;
+    rtm->rtm_msglen += sa->sa_len;
+
+    sdl = (struct sockaddr_dl*) ((void*) sa + sa->sa_len);
+    sdl->sdl_len = sizeof(struct sockaddr_dl);
+    sdl->sdl_family = AF_LINK;
+    rtm->rtm_msglen += sdl->sdl_len;
+
+    /* Do the route exchange */
+    sstp_route_talk(ctx, (unsigned char*) rtm, rtm->rtm_msglen);
+    if (!rtm->rtm_addrs)
+        goto done;
+
+    cp = ((char*) (rtm + 1));
+    for (i = 1; i; i <<= 1)
+    {
+        sa = (struct sockaddr*) cp;
+        if (i & rtm->rtm_addrs) {
+            switch (i) {
+            case RTA_DST:
+                route->have.dst= 1;
+                route->rt_blen = (sa->sa_family == AF_INET6) ? 16 : 4;
+                route->family  = sa->sa_family;
+
+                /* On Mac OS-X, the DST isn't copied back; so ignore the 0.0.0.0 value */
+                sstp_route_toinetaddr(dst, dst->sa_family, &route->dst);
+                break;
+
+            case RTA_GATEWAY:
+                route->have.gwy = 1;
+                sstp_route_toinetaddr(sa, sa->sa_family, &route->gwy);
+                break;
+
+            case RTA_NETMASK:
+                /* Ignore this one for now */
+                break;
+
+            case RTA_IFP:   
+                if (sa->sa_family != AF_LINK)
+                    break;
+                sdl = (struct sockaddr_dl*) sa;
+                strncpy(route->ifname, sdl->sdl_data, sdl->sdl_nlen);
+                route->have.oif = 1;
+                break;
+            }
+
+            cp += SA_SIZE(sa);
+        }
+    } 
+
+    /* Success */
+    retval = 0;
+
+done:
+
+    return retval;
+}
+
+int sstp_route_replace(sstp_route_ctx_st *ctx, sstp_route_st *route)
+{
+    int len = sstp_route_newmsg(ctx, route, RTM_ADD,
+            RTF_STATIC|RTF_UP|RTF_HOST);
+    if (len < 0)
+    {
+        return -1;
+    }
+
+    len = sstp_route_talk(ctx, ctx->buf, len);
+    if (len < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int sstp_route_delete(sstp_route_ctx_st *ctx, sstp_route_st *route)
+{
+    int len = sstp_route_newmsg(ctx, route, RTM_DELETE,
+            RTF_STATIC|RTF_UP|RTF_HOST);
+    if (len < 0)
+    {
+        return -1;
+    }
+
+    len = sstp_route_talk(ctx, ctx->buf, len);
+    if (len < 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int sstp_route_init(sstp_route_ctx_st **ctx)
+{
+    sstp_route_ctx_st *r = calloc(1, sizeof(sstp_route_ctx_st));
+    if (!r)
+    {
+        goto done;
+    }
+
+    r->sock = socket(PF_ROUTE, SOCK_RAW, 0);
+    if (r->sock < 0)
+    {
+        goto done;
+    }
+
+    *ctx = r;
+    return 0;
+
+done:
+    
+    if (r)
+    {
+        if (r->sock)
+            close(r->sock);
+        free(r);
+    }
+
+    return -1;
+}
+
+
+void sstp_route_done(sstp_route_ctx_st *ctx)
+{
+    if (!ctx)
+    {
+        return;
+    }
+    
+    if (ctx->sock > 0)
+    {
+        close(ctx->sock);
+        ctx->sock = 0;
+    }
+
+    free(ctx);
+}
+
+#else
 #ifdef HAVE_NETLINK
 
 /*!
@@ -542,6 +877,7 @@ void sstp_route_done(sstp_route_ctx_st *ctx)
 }
 
 #endif  /* #ifdef HAVE_NETLINK */
+#endif
 
 #ifdef __SSTP_UNIT_TEST_ROUTE
 
@@ -584,7 +920,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in dst;
     int retval = EXIT_FAILURE;
 
-#ifdef HAVE_NETLINK
+#if defined(HAVE_NETLINK) || defined(__APPLE__)
     char src_ip[INET_ADDRSTRLEN];
     char dst_ip[INET_ADDRSTRLEN];
     char gw_ip [INET_ADDRSTRLEN];
@@ -605,7 +941,7 @@ int main(int argc, char *argv[])
         goto done;
     }
 
-#ifdef HAVE_NETLINK
+#if defined(HAVE_NETLINK) || defined(__APPLE__)
     inet_ntop(AF_INET, &route.gwy, gw_ip, sizeof(gw_ip));
     inet_ntop(AF_INET, &route.src, src_ip, sizeof(src_ip));
     inet_ntop(AF_INET, &route.dst, dst_ip, sizeof(dst_ip));
@@ -623,7 +959,7 @@ int main(int argc, char *argv[])
             goto done;
         }
 
-#ifdef HAVE_NETLINK
+#if defined(HAVE_NETLINK) || defined(__APPLE__)
         printf("Added route to %s via %s\n", dst_ip, 
                 route.ifname);
 #endif
@@ -633,7 +969,7 @@ int main(int argc, char *argv[])
             goto done;
         }
 
-#ifdef HAVE_NETLINK
+#if defined(HAVE_NETLINK) || defined(__APPLE__)
         printf("Deleted route to %s via %s\n", dst_ip, 
                 route.ifname);
 #endif

@@ -31,7 +31,7 @@ struct sstp_route_ctx;
 typedef struct sstp_route_ctx sstp_route_ctx_st;
 
 
-#ifdef HAVE_NETLINK
+#if defined(HAVE_NETLINK) || defined(__APPLE__)
 
 /*! 
  * @brief Holds either a ipv4 or an ipv6 address
