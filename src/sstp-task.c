@@ -333,7 +333,7 @@ int main(void)
     /* Make sure it's correct */
     if (strcmp(buf, TEST_STRING))
     {
-        printf("The read data was not \"%s\"\n", TEST_STRING, buf);
+        printf("The read data was not \"%s\" != \"%s\"\n", TEST_STRING, buf);
         return EXIT_FAILURE;
     }
 

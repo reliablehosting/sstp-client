@@ -429,8 +429,6 @@ static int sstp_route_recv(sstp_route_ctx_st *ctx)
 
         if (!NLMSG_OK(nlh, len))
         {
-            log_err("Could not receive data: %d, %s (%d)\n", 
-                len, strerror(errno), errno);
             return -1;
         }
         
