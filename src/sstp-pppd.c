@@ -67,6 +67,9 @@ struct sstp_pppd
 
     /*< The socket to pppd */
     int sock;
+
+    /*< Should we notify client of ip_up */
+    int ip_up;
     
     /*< Should we stil continue checking for CHAP structure */
     int auth_done;
@@ -196,13 +199,31 @@ void sstp_pppd_session_details(sstp_pppd_st *ctx, sstp_session_st *sess)
     sess->tx_bytes = ctx->sent_bytes;
 }
 
+static void sstp_pppd_ipup(sstp_pppd_st* ctx, sstp_buff_st *tx)
+{
+    const char *buf = sstp_pkt_data(tx) + 2;
+    uint16_t proto;
+
+    proto = (ntohs(*(uint16_t *) buf));
+    if (proto == SSTP_PPP_IPCP)
+    {
+        if (ctx->notify)
+        {
+            ctx->notify(ctx->arg, SSTP_PPP_UP);
+        }
+
+        ctx->ip_up = 1;
+    }
+
+    return;
+}
 
 /*!
  * @brief Intercept any CHAP / PAP authentication with the peer.
  */
 static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
 {
-    const char *buf = sstp_pkt_data(tx);
+    const char *buf = sstp_pkt_data(tx) + 2;
     int ret = 0;
 
     /* Check if we have received the CHAP credentials */
@@ -312,6 +333,12 @@ static status_t ppp_process_data(sstp_pppd_st *ctx)
         if (ctx->auth_check && !ctx->auth_done) 
         {
             sstp_pppd_check_auth(ctx, tx);
+        }
+
+        /* If plugin is not enabled, then we need to send ip-up */
+        if (ctx->auth_check && !ctx->ip_up)
+        {
+            sstp_pppd_ipup(ctx, tx);
         }
 
         sstp_pkt_trace(tx);

@@ -91,7 +91,13 @@ static void sstp_client_pppd_cb(sstp_client_st *client, sstp_pppd_event_t ev)
         break;
 
     case SSTP_PPP_UP:
-        log_info("PPP UP");
+
+        /* Tell the state machine to connect */
+        ret = sstp_state_accept(client->state);
+        if (SSTP_FAIL == ret)
+        {
+            sstp_die("Negotiation with server failed", -1);
+        }
         break;
 
     case SSTP_PPP_AUTH:
@@ -109,14 +115,6 @@ static void sstp_client_pppd_cb(sstp_client_st *client, sstp_pppd_event_t ev)
 
         /* Set the keys */
         sstp_state_mppe_keys(client->state, skey, 16, rkey, 16);
-
-        /* Tell the state machine to connect */
-        ret = sstp_state_accept(client->state);
-        if (SSTP_FAIL == ret)
-        {
-            sstp_die("Negotiation with server failed", -1);
-        }
-
         break;
     }
 

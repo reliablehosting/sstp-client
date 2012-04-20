@@ -30,6 +30,9 @@
 /*! Auth using PAP */
 #define SSTP_PPP_AUTH_PAP   0xc023
 
+/*! Check when IPCP layer is up */
+#define SSTP_PPP_IPCP       0x8021
+
 struct sstp_pppd;
 typedef struct sstp_pppd sstp_pppd_st;
 
