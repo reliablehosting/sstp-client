@@ -97,7 +97,8 @@ static void sstp_send_notify(unsigned char *skey, int slen,
     ret = connect(sock, (struct sockaddr*) &addr, alen);
     if (ret < 0)
     {
-        fatal("Could not connect to sstp-client (%s), %m", sstp_sock);
+        fatal("Could not connect to sstp-client (%s), %s (%d)", sstp_sock,
+            strerror(errno), errno);
     }
 
     /* Create a new message */

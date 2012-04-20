@@ -185,7 +185,8 @@ static void sstp_event_accept(int fd, short event, sstp_event_st *ctx)
     sock = accept(fd, NULL, NULL);
     if (sock < 0)
     {
-        log_err("Unable to accept connection on socket, %m (%d)", errno);
+        log_err("Unable to accept connection on socket, %s (%d)", 
+            strerror(errno), errno);
         goto done;
     }
 
@@ -195,7 +196,8 @@ static void sstp_event_accept(int fd, short event, sstp_event_st *ctx)
     len = read(sock, &msg, sizeof(msg));
     if (len < 0 || len != sizeof(msg))
     {
-        log_err("Could not read the header of the message, %m %d", len);
+        log_err("Could not read the header of the message: %d, %s (%d)", 
+            len, strerror(errno), errno);
         goto done;
     }
 
@@ -272,7 +274,8 @@ status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0)
     {
-        log_err("Could not create unix socket, %m (%d)", errno);
+        log_err("Could not create unix socket, %s (%d)", 
+            strerror(errno), errno);
         goto done;
     }
 
@@ -289,7 +292,8 @@ status_t sstp_event_create(sstp_event_st **ctx, sstp_option_st *opts,
     ret = bind(sock, (struct sockaddr*) &addr, alen);
     if (ret < 0)
     {
-        log_err("Could not bind ipc socket, %m");
+        log_err("Could not bind ipc socket, %s (%d)", 
+            strerror(errno), errno);
         goto done;
     }
 
@@ -363,7 +367,8 @@ void sstp_event_free(sstp_event_st *ctx)
         /* Unlink the file */
         if (0 > unlink(name))
         {
-            log_warn("Could not remove socket, %m (%d)", errno);
+            log_warn("Could not remove socket, %s (%d)",
+                strerror(errno), errno);
         }
     }
     

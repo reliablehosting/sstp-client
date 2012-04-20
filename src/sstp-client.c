@@ -412,7 +412,8 @@ static status_t sstp_client_connect(sstp_client_st *client,
     if (SSTP_INPROG != ret && 
         SSTP_OKAY   != ret)
     {
-        log_err("Could not connect to the server, %m (%d)", errno);
+        log_err("Could not connect to the server, %s (%d)", 
+            strerror(errno), errno);
         goto done;
     }
 

@@ -171,8 +171,8 @@ static void sstp_pppd_deltmp(sstp_pppd_st *ctx)
 
     if (0 > unlink(ctx->tmpfile))
     {
-        log_warn("Could not remove temporary file, %m (%d)", 
-                errno);
+        log_warn("Could not remove temporary file, %s (%d)",
+            strerror(errno), errno);
     }
     
     ctx->del_file = 0;
