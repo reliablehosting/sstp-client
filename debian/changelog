@@ -1,3 +1,11 @@
+sstp-client (1.0.7) oneiric; urgency=low
+  
+  * Fixed a problem where client failed to send connected message to server 
+    when specifying user/pass on command line
+  * Various changes to support Mac OS-X / Darwin via Mac Ports project
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 28 Apr 2012 20:00:00 -0800
+
 sstp-client (1.0.6) oneiric; urgency=low
 
   * Fixed a critical bug where the pppd configuration file was deleted before 

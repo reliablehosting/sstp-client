@@ -88,6 +88,11 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
+* Sat Apr 28 2012 Eivind Naess <eivnaes@yahoo.com> - 1.0.7-1
+  * Fixed a bug where connection failed to authenticate with server when specifying
+    username / password on command line (first seen by microtik routers).
+  * Various fixes to support Mac OS-X / Darwin
+
 * Sat Mar 15 2012 Eivind Naess <eivnaes@yahoo.com> - 1.0.6-1
   * Fixed a bug where the temporary password file was deleted before authentication could
     proceed.
