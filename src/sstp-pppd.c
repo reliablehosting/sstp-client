@@ -567,7 +567,7 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts,
     ctx->ev_recv = event_new(ctx->ev_base, ctx->sock, EV_READ, (event_fn) 
             sstp_pppd_recv, ctx);
 
-    /* Add the recieve event */
+    /* Add the receive event */
     event_add(ctx->ev_recv, NULL);
 
     /* Success! */

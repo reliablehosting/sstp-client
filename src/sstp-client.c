@@ -56,7 +56,7 @@ static void sstp_client_event_cb(sstp_client_st *client, int ret)
     /* Check the result of the event */
     if (SSTP_OKAY != ret)
     {
-        sstp_die("Failed to recieve ip-up notify callback", -1);
+        sstp_die("Failed to receive ip-up notify callback", -1);
     }
 
     /* Get the result */
@@ -143,7 +143,7 @@ static void sstp_client_state_cb(sstp_client_st *client, sstp_state_t event)
                 (sstp_pppd_fn) sstp_client_pppd_cb, client);
         if (SSTP_OKAY != ret)
         {
-            sstp_die("Could not initalize PPP daemon", -1);
+            sstp_die("Could not initialize PPP daemon", -1);
         }
 
         /* Start the pppd daemon */

@@ -10,15 +10,15 @@ Build-Depends:
  libssl-dev,
  hardening-includes,
  hardening-wrapper
-Standards-Version: 3.9.1
+Standards-Version: 3.9.3
 Vcs-Svn: https://sstp-client.svn.sourceforge.net/svnroot/sstp-client
 Homepage: http://sstp-client.sourceforge.net
 
 Package: sstp-client
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ppp (>= 2.4.5)
+Depends: ${shlibs:Depends}, ${misc:Depends}, ppp (>= 2.4.5), adduser
 Recommends: network-manager-sstp | network-manager-sstp-gnome
-Description: Secure Socket Tunneling Protocol (SSTP) Client
- Client for the properitary Microsoft Secure Socket Tunneling Protocol, SSTP. Allows connection for a SSTP based VPN as used by employers.
-Section: net
-Priority: optional
+Description: Connect to a Microsoft Windows 2008 server using SSTP VPN
+ A client implementation of Secure Socket Tunneling Protocol (SSTP) for 
+ Linux / Mac OS-X that allows remote access via SSTP VPN to Microsoft 
+ Windows 2008 Server. It does so by tunneling PPP data over SSL.

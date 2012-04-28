@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # creating sstpc group if it isn't already there
 if ! getent group sstpc >/dev/null; then
@@ -16,3 +16,4 @@ if ! getent passwd sstpc >/dev/null; then
           sstpc  >/dev/null
 fi
 
+#DEBHELPER#
