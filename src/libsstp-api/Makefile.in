@@ -86,8 +86,8 @@ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 libsstp_api_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(libsstp_api_la_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o \
-	$@
+	$(libsstp_api_la_CFLAGS) $(CFLAGS) $(libsstp_api_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -247,6 +247,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libsstp_api.la
+libsstp_api_la_LDFLAGS = -export-dynamic -release 0
 libsstp_api_la_CFLAGS = -I$(top_srcdir)/include
 libsstp_api_la_SOURCES = \
     sstp-api.c
