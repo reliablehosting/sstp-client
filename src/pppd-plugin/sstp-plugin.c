@@ -42,15 +42,7 @@ extern int mppe_keys_set;
 #endif
 #define SSTP_MAX_BUFLEN             255
 
-typedef struct sstp_mppe_ctx
-{
-    u_char mppe_send_key[MPPE_MAX_KEY_LEN];
-    u_char mppe_recv_key[MPPE_MAX_KEY_LEN];
-    int mppe_keys_set;
-} sstp_mppe_ctx_t;
-
-static sstp_mppe_ctx_t m_ctx = {};
-
+static int sstp_notify_sent = 0;
 
 /*!
  * @brief PPP daemon requires this symbol to be exported
@@ -127,6 +119,9 @@ static void sstp_send_notify(unsigned char *skey, int slen,
         fatal("Could not wait for ack from sstp-client");
     }
 
+    /* We have communicated the keys */
+    sstp_notify_sent = 1;
+
     /* Close socket */
     close(sock);
 }
@@ -144,9 +139,19 @@ static void sstp_send_notify(unsigned char *skey, int slen,
  */
 static void sstp_ip_up(void *arg, int dummy)
 {
+    if (sstp_notify_sent)
+        return;
+
+    /* Auth-Type is not MSCHAPv2, reset the keys and send blank keys */
+    if (!mppe_keys_set)
+    {
+        memset(&mppe_send_key, 0, sizeof(mppe_send_key));
+        memset(&mppe_recv_key, 0, sizeof(mppe_recv_key));
+    }
+
     /* Send the MPPE keys to the sstpc client */
-    sstp_send_notify(m_ctx.mppe_send_key, sizeof(m_ctx.mppe_send_key),
-            m_ctx.mppe_recv_key, sizeof(m_ctx.mppe_recv_key));
+    sstp_send_notify(mppe_send_key, sizeof(mppe_send_key),
+            mppe_recv_key, sizeof(mppe_recv_key));
 }
 
 
@@ -212,11 +217,9 @@ static void sstp_snoop_send(unsigned char *buf, int len)
         dbglog("%s: The mppe recv key: %s", __func__, key);
     }
 
-    memcpy(m_ctx.mppe_send_key, mppe_send_key, 
-        sizeof(m_ctx.mppe_send_key));
-    memcpy(m_ctx.mppe_recv_key, mppe_recv_key, 
-        sizeof(m_ctx.mppe_recv_key));
-    m_ctx.mppe_keys_set = 1;
+    /* Send the MPPE keys to the sstpc client */
+    sstp_send_notify(mppe_send_key, sizeof(mppe_send_key),
+            mppe_recv_key, sizeof(mppe_recv_key));
 }
 
 
