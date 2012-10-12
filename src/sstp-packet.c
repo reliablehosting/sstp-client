@@ -195,7 +195,7 @@ done:
 }
 
 
-char *sstp_pkt_data(sstp_buff_st *buf)
+uint8_t *sstp_pkt_data(sstp_buff_st *buf)
 {
     sstp_pkt_st *pkt = (sstp_pkt_st*) buf->data;
     if (!(SSTP_MSG_FLAG_CTRL & pkt->flags))

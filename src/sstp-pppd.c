@@ -201,7 +201,7 @@ void sstp_pppd_session_details(sstp_pppd_st *ctx, sstp_session_st *sess)
 
 static void sstp_pppd_ipup(sstp_pppd_st* ctx, sstp_buff_st *tx)
 {
-    const char *buf = sstp_pkt_data(tx) + 2;
+    uint8_t *buf = sstp_pkt_data(tx);
     uint16_t proto;
 
     proto = (ntohs(*(uint16_t *) buf));
@@ -223,10 +223,10 @@ static void sstp_pppd_ipup(sstp_pppd_st* ctx, sstp_buff_st *tx)
  */
 static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
 {
-    const char *buf = sstp_pkt_data(tx) + 2;
+    uint8_t *buf = sstp_pkt_data(tx);
     int ret = 0;
 
-    /* Check if we have received the CHAP credentials */
+    /* Check if we have received the MS-CHAPv2(0xC223) credentials */
     switch (ntohs(*(uint16_t*)buf))
     {
     case SSTP_PPP_AUTH_CHAP:
@@ -240,7 +240,7 @@ static void sstp_pppd_check_auth(sstp_pppd_st* ctx, sstp_buff_st *tx)
             {
                 ctx->notify(ctx->arg, SSTP_PPP_AUTH);
             }
-
+ 
             ctx->auth_done = 1;
             break;
         }

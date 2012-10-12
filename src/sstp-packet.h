@@ -152,7 +152,7 @@ status_t sstp_pkt_attr(sstp_buff_st *buf, sstp_attr_t type,
 /*!
  * @brief Get a pointer to the raw data
  */
-char *sstp_pkt_data(sstp_buff_st *buf);
+uint8_t *sstp_pkt_data(sstp_buff_st *buf);
 
 
 /*!
