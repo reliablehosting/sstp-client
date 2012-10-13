@@ -40,6 +40,7 @@ CFLAGS="-Wall %{optflags}" 		\
 	./configure 			\
 		--disable-static	\
 		--prefix=/usr 		\
+		--libdir=%_libdir	\
 		--with-libevent=2 	\
 		--with-pppd-plugin-dir=%_libdir/pppd/%ppp_version \
 		--with-runtime-dir="/var/run/sstpc"
