@@ -2,7 +2,7 @@
 %define event_version 2.0.10
 
 Name:		sstp-client
-Version:	1.0.6
+Version:	1.0.8
 Release:	1%{?dist}
 Summary:	Secure Socket Tunneling Protocol (SSTP) Client
 Group:		Applications/Internet
@@ -88,6 +88,12 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
+* Sat Oct 12 2012 Eivind Naess <eivnaes@yahoo.com> - 1.0.8-1
+  * Unable to authenticate using --password, causing server to timeout
+    the connection after 60 seconds.
+  * Fixed a bug resulting in connection aborted on Ubuntu 12.04 with the 
+    message: "Connection was aborted, value of attribute is incorrect"
+
 * Sat Apr 28 2012 Eivind Naess <eivnaes@yahoo.com> - 1.0.7-1
   * Fixed a bug where connection failed to authenticate with server when specifying
     username / password on command line (first seen by microtik routers).

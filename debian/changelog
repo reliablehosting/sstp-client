@@ -1,3 +1,12 @@
+sstp-client (1.0.8) oneiric; urgency=low
+  
+  * Unable to authenticate using --password, causing server to timeout
+    the connection after 60 seconds.
+  * Fixed a bug resulting in connection aborted on Ubuntu 12.04 with the 
+    message: "Connection was aborted, value of attribute is incorrect"
+
+ -- Eivind Naess <eivnaes@yahoo.com>  Sat, 12 Oct 2012 08:00:00 -0800
+
 sstp-client (1.0.7) oneiric; urgency=low
   
   * Fixed a problem where client failed to send connected message to server 
