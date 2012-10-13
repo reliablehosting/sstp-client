@@ -25,10 +25,6 @@ configure:
 %:
 	dh $@
 
-override_dh_install:
-	dh_install
-	sed -i "/dependency_libs/ s/'.*'/''/" `find debian/sstp-client/* -name '*.la'`
-
 override_dh_makeshlibs:
 	dh_makeshlibs -X/usr/lib/pppd/
 
