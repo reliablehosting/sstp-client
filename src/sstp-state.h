@@ -61,7 +61,7 @@ typedef void (*sstp_state_change_fn)(void *arg, sstp_state_t state);
 /*!
  * @brief Set the data forwarder function
  */
-typedef status_t (*sstp_state_forward_fn)(void *arg, const char *data, 
+typedef status_t (*sstp_state_forward_fn)(void *arg, uint8_t *data, 
         int size);
 
 /*!
