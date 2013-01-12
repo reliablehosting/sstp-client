@@ -541,7 +541,7 @@ status_t sstp_stream_recv_sstp(sstp_stream_st *ctx, sstp_buff_st *buf,
     do
     {
         /* Try to the header first, then the entire packet */
-        buf->len = (buf->len >= 4)
+        buf->len = (buf->off >= 4)
             ? sstp_pkt_len(buf)
             : 4 ;
 
