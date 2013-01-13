@@ -89,6 +89,11 @@ rm -rf /var/run/sstpc
 /usr/include/sstp-client/sstp-api.h
 
 %changelog
+* Sat Jan 13 2013 Eivind Naess <eivnaes@yahoo.com> - 1.0.9-1
+  * Fixed a critical bug that caused received packets to become corrupt, inability to access
+    internal web-sites and caused random segfaults. Thanks to Damijan A. for reporting and 
+    providing an environment to test in.
+
 * Sat Oct 12 2012 Eivind Naess <eivnaes@yahoo.com> - 1.0.8-1
   * Unable to authenticate using --password, causing server to timeout
     the connection after 60 seconds.
