@@ -155,7 +155,7 @@ static int sstp_route_tosockaddr(struct sockaddr *sa, int family, inet_addr_t *a
 /*!
  * @brief Convert a sockaddr structure to inet_addr_t
  */
-static int sstp_route_toinetaddr(struct sockaddr *sa, int family, inet_addr_t *addr)
+static void sstp_route_toinetaddr(struct sockaddr *sa, int family, inet_addr_t *addr)
 {
     if (AF_INET == family) 
     {
@@ -168,7 +168,7 @@ static int sstp_route_toinetaddr(struct sockaddr *sa, int family, inet_addr_t *a
         struct sockaddr_in6 *in6 = (struct sockaddr_in6*) sa;
         memcpy(&addr->in6, &in6->sin6_addr, sizeof(addr->in6));
     }
- }
+}
 
 
 /*!
@@ -324,7 +324,7 @@ int sstp_route_replace(sstp_route_ctx_st *ctx, sstp_route_st *route)
         return -1;
     }
 
-    len = sstp_route_talk(ctx, ctx->buf, len);
+    len = sstp_route_talk(ctx, (unsigned char *) ctx->buf, len);
     if (len < 0)
     {
         return -1;
@@ -343,7 +343,7 @@ int sstp_route_delete(sstp_route_ctx_st *ctx, sstp_route_st *route)
         return -1;
     }
 
-    len = sstp_route_talk(ctx, ctx->buf, len);
+    len = sstp_route_talk(ctx, (unsigned char*) ctx->buf, len);
     if (len < 0)
     {
         return -1;
