@@ -508,7 +508,7 @@ status_t sstp_pppd_start(sstp_pppd_st *ctx, sstp_option_st *opts,
             }
 
             /* Dump password to temporary file */
-            j = snprintf(buff, sizeof(buff), "password %s\n", opts->password);
+            j = snprintf(buff, sizeof(buff), "password \"%s\"\n", opts->password);
             if (write(fd, buff, j) != j)
             {
                 log_warn("Could not write password to file");
