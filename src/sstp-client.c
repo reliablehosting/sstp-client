@@ -297,7 +297,7 @@ static void sstp_client_proxy_done(sstp_client_st *client, int status)
 
         /* Create the SSL I/O streams */
         ret = sstp_stream_create(&client->stream, client->ev_base, 
-                client->ssl_ctx);
+                client->ssl_ctx, client->host.name);
         if (SSTP_OKAY != ret)
         {
             sstp_die("Could not create I/O stream", -1);
@@ -400,14 +400,13 @@ static status_t sstp_client_connect(sstp_client_st *client,
     status_t ret = SSTP_FAIL;
 
     /* Create the I/O streams */
-    ret = sstp_stream_create(&client->stream, client->ev_base, client->ssl_ctx);
+    ret = sstp_stream_create(&client->stream, client->ev_base, client->ssl_ctx, client->host.name);
     if (SSTP_OKAY != ret)
     {
         log_err("Could not setup SSL streams");
         goto done;
     }
 
-    /* Have the stream connect */
     ret = sstp_stream_connect(client->stream, addr, alen, (sstp_complete_fn) complete_cb, client, 10);
     if (SSTP_INPROG != ret && 
         SSTP_OKAY   != ret)
@@ -424,7 +423,6 @@ done:
 
     return ret;
 }
-
 
 /*!
  * @brief Perform the global SSL initializers

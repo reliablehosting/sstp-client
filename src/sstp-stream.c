@@ -116,6 +116,9 @@ struct sstp_stream
 
     /*< The list of free operations */
     sstp_operation_st *cache;
+
+    /*< Server nam */
+    char name[128];
 };
 
 
@@ -661,6 +664,8 @@ status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     sstp_complete_fn complete, void *arg, int timeout)
 {
     int ret = 0;
+    char subbuff[buf->len - buf->off];
+    int i = 0;
 
     stream->last = time(NULL);
     stream->send_cb = (event_fn) sstp_send_cont;
@@ -684,9 +689,11 @@ status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     {
         /* Try SSL write to the socket */
         int err = 0;
+
         ret = SSL_write(stream->ssl, buf->data + buf->off, 
                 buf->len - buf->off);
-        switch ((err = SSL_get_error(stream->ssl, ret)))
+        err = SSL_get_error(stream->ssl, ret);
+        switch (err)
         {
         case SSL_ERROR_NONE:
             buf->off += ret;
@@ -712,6 +719,28 @@ status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     return SSTP_OKAY;
 }
 
+static int ocsp_resp_cb(SSL *s, void *arg)
+{
+    const unsigned char *p;
+    int len;
+    OCSP_RESPONSE *rsp;
+    len = SSL_get_tlsext_status_ocsp_resp(s, &p);
+    printf(arg, "OCSP response: ");
+    if (!p) {
+        printf(arg, "no response sent\n");
+        return 1;
+    }
+    rsp = d2i_OCSP_RESPONSE(NULL, &p, len);
+    if (!rsp) {
+        printf(arg, "response parse error\n");
+        return 0;
+    }
+    printf(arg, "\n======================================\n");
+    OCSP_RESPONSE_print(arg, rsp, 0);
+    printf(arg, "======================================\n");
+    OCSP_RESPONSE_free(rsp);
+    return 1;
+}
 
 static status_t sstp_stream_setup(sstp_stream_st *stream)
 {
@@ -720,6 +749,17 @@ static status_t sstp_stream_setup(sstp_stream_st *stream)
     if (stream->ssl == NULL)
     {
         log_err("Could not create SSL session", -1);
+        goto done;
+    }
+
+    if (!SSL_set_tlsext_host_name(stream->ssl, stream->name)) {
+        log_err("Unable to set TLS servername extension.");
+        goto done;
+    }
+
+    if (!SSL_set_tlsext_status_type(stream->ssl, TLSEXT_STATUSTYPE_ocsp)) {
+        SSL_CTX_set_tlsext_status_cb(stream->ssl_ctx, ocsp_resp_cb);
+        log_err("Unable to set TLS status extension.");
         goto done;
     }
 
@@ -929,7 +969,7 @@ done:
 
 
 status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base, 
-        SSL_CTX *ssl)
+        SSL_CTX *ssl, const char* name)
 {
     /* Create a new stream */
     sstp_stream_st *stream_= calloc(1, sizeof(sstp_stream_st));
@@ -943,6 +983,8 @@ status_t sstp_stream_create(sstp_stream_st **stream, event_base_st *base,
     stream_->ev_recv = event_new(base, -1, 0, NULL, NULL);
     stream_->ev_send = event_new(base, -1, 0, NULL, NULL);
     stream_->ssl_ctx = ssl;
+    memset(stream_->name, 0, sizeof(stream_->name));
+    strncpy(stream_->name, name, sizeof(stream_->name));
     *stream = stream_;
 
     /* Success */
