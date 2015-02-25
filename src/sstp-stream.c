@@ -69,7 +69,7 @@ typedef struct sstp_operation
 
     /*< Argument to pass back the complete function */
     void *arg;
-    
+
 } sstp_operation_st;
 
 
@@ -117,7 +117,7 @@ struct sstp_stream
     /*< The list of free operations */
     sstp_operation_st *cache;
 
-    /*< Server nam */
+    /*< Server name */
     char name[128];
 };
 
@@ -719,29 +719,6 @@ status_t sstp_stream_send(sstp_stream_st *stream, sstp_buff_st *buf,
     return SSTP_OKAY;
 }
 
-static int ocsp_resp_cb(SSL *s, void *arg)
-{
-    const unsigned char *p;
-    int len;
-    OCSP_RESPONSE *rsp;
-    len = SSL_get_tlsext_status_ocsp_resp(s, &p);
-    printf(arg, "OCSP response: ");
-    if (!p) {
-        printf(arg, "no response sent\n");
-        return 1;
-    }
-    rsp = d2i_OCSP_RESPONSE(NULL, &p, len);
-    if (!rsp) {
-        printf(arg, "response parse error\n");
-        return 0;
-    }
-    printf(arg, "\n======================================\n");
-    OCSP_RESPONSE_print(arg, rsp, 0);
-    printf(arg, "======================================\n");
-    OCSP_RESPONSE_free(rsp);
-    return 1;
-}
-
 static status_t sstp_stream_setup(sstp_stream_st *stream)
 {
     /* Associate the streams */
@@ -758,7 +735,6 @@ static status_t sstp_stream_setup(sstp_stream_st *stream)
     }
 
     if (!SSL_set_tlsext_status_type(stream->ssl, TLSEXT_STATUSTYPE_ocsp)) {
-        SSL_CTX_set_tlsext_status_cb(stream->ssl_ctx, ocsp_resp_cb);
         log_err("Unable to set TLS status extension.");
         goto done;
     }
