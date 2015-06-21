@@ -82,6 +82,18 @@ typedef struct
     /*! The arguments vector to pppd */
     char **pppdargv;
 
+	/*! client certificate file */
+	char *cert;
+
+	/*! private key for client certificate */
+	char *priv_key;
+
+	/*! engine to handle hardware device with keys */
+	char *engine;
+
+	/*! options to pass to engine (i.e. name of PKCS11 module) */
+	char *engine_opts;
+
 } sstp_option_st;
 
 

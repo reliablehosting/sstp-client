@@ -434,6 +434,10 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
     int retval = SSTP_FAIL;
     int status = 0;
 
+	ENGINE *e=NULL;
+	/* Load default OpenSSL  config file. Typically it does no harm, but can
+	 * provice useful things such as engine configuration */
+	OPENSSL_config(NULL);
     /* Initialize the OpenSSL library */
     status = SSL_library_init();
     if (status != 1)
@@ -469,13 +473,80 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
                 opt->ca_cert, opt->ca_path);
         if (status != 1)
         {
-            log_err("Could not set default verify location");
+            logerr("Could not set default verify location");
             goto done;
         }
     }
 
     SSL_CTX_set_verify_depth(client->ssl_ctx, 1);
+	if (opt->engine) {
+	/* If engine is specified, try to load it even if it is not used to
+	 * store private key
+	 */
+	e=ENGINE_by_id(opt->engine):
+	if (e == NULL) 
+	{
+	 	logerr("Couldn not load engine");
+		goto done;
+	}
+	if (opt->engine_opts) 
+	{
+	 	/* tokenize the options and pass them to ENGINE_ctrl_cmd_string
+		 */
+	}
+	if (opt->cert) 
+	{	
+		if (!SSL_CTX_use_certificate_file(client->ssl_ctx,opt->cert,SSL_FILETYPE_PM)) {
+			log_err("Could not load certificate file");
+			goto done;
+		}
+		if (!opt->priv_key) {
+			/* Assume that private key in the same file as certificate */
+			if (!SSL_CTX_use_PrivateKey_file(client->ssl_ctx,opt->cert,SSL_FILETYPE_PEM))
+			{ logerr("Could not load private key from certificate file");
+			goto done;
+			}
+		} else {
+			/* Check if  key is engine-provided */
+			EVP_KEY *key;
+			UI *ui=sstp_init_ssl_ui();
+			if (strncmp("engine:",opt->priv_key,7)==0) {
+				if (!e) 
+				{
+					logerr("Engine provided key but no engine loaded");
+					goto done;
+				}
+				key=ENGINE_load_private_key(e,opt->priv_key+7,ui,NULL);
+			} else {
+				FILE *f=fopen(opt->priv_key,"r");
+				if (!f) 
+				{
+					logerr("Couldn't open private key file");
+				}
+				key=PEM_read_PrivateKey(f,NULL,sstp_password_cb,NULL);
+			}
+			if (!key) {
+				logerr("Couldn't load private key");
+				goto done;
+			}
+			if (!SSL_CTX_use_private_key(client->ssl_ctx,key)) 
+			{
+				logerr("Couldn't install private key into SSL CTX");
+				goto done;
+			}
+			if (!SSL_CTX_check_private_key(client->ssl_ctx))
+			{	
+				logerr("Private key doesn't match certificate");
+				goto done;
+			}
 
+		}
+
+	}				
+			
+
+
+	
     /*! Success */
     retval = SSTP_OKAY;
 

@@ -8,7 +8,17 @@ sstp-client:
 * Build doxygen target
 * SSTP Server Support
 
+clientcrt branch:
+* new command-line options
+  - key secret key filename or key ID within hardware device
+  - cert certificate filename. If omitted, loaded from same place as key
+  - engine openssl engine name to load
+  - engine-param list of configuration string to pass to engine
+  - key-pass passphrase or PIN for key
+
 network-manager-sstp:
 * Sync up to latest git branch for pptp (any bug fixes?)
 * Add proxy configuration support
 * Additional options to limit the crypto
+
+

@@ -209,7 +209,16 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
            sstp_die("Can only save server route when run as root", -1);
         ctx->enable |= SSTP_OPT_SAVEROUTE;
         break;
-
+	case 15:
+		ctx->cert = strdup(optarg);
+		break;
+	case 16:
+		ctx->priv_key= strdup(optarg);
+		break;
+	case 17:
+		ctx->engine = strdup(optarg);
+	case 18:
+		ctx->engine_opts = strdup(optarg);
     default:
         sstp_usage_die(argv[0], -1, "Unrecognized command line option");
         break;
@@ -279,7 +288,13 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
         { "user",           required_argument, NULL,  0  },
         { "uuid",           required_argument, NULL,  0  },
         { "save-server-route", no_argument,    NULL,  0  },
+		/*client certificate support related stuff */
+		{ "cert",			required_argument, NULL,  0  }, /* 15 */
+		{ "key",			required_argument, NULL,  0  },
+		{ "engine",			required_argument, NULL,  0  },
+		{ "engine-opt",		required_argument, NULL,  0  },
         { "version",        no_argument,       NULL, 'v' },
+		/*end client certificate related options */
         { 0, 0, 0, 0 }
     };
 
