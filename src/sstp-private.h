@@ -60,6 +60,8 @@ typedef struct timeval timeval_st;
 /*< Are we running in server mode */
 #define SSTP_MODE_SERVER     0x02
 
+/*< Min length for private key password. */
+#define SSTP_PW_MIN_LENGTH   4
 #include <sstp-compat.h>
 #include <sstp-common.h>
 #include <sstp-log.h>

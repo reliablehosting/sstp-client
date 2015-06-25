@@ -88,6 +88,9 @@ typedef struct
 	/*! private key for client certificate */
 	char *priv_key;
 
+	/*! encryption passowrd for private key */
+	char *key_pass;
+
 	/*! engine to handle hardware device with keys */
 	char *engine;
 

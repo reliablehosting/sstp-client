@@ -93,6 +93,11 @@ void sstp_usage_die(const char *prog, int code,
     printf("  --user                   Username\n");
     printf("  --save-server-route      Add route to VPN server\n");
     printf("  --uuid                   The connection id\n");
+    printf("  --cert                   Client certificate file name\n");
+    printf("  --key                    Private key for ceritficate (may be engine:ID)\n");
+    printf("  --engine                 Engine module to handle private key\n");
+    printf("  --engine-opt             Options for engine module\n");
+    printf("  --key-pass               Private key password\n");
     printf("  --version                Display the version information\n\n");
 
     /* Additional log usage */
@@ -217,8 +222,13 @@ static void sstp_parse_option(sstp_option_st *ctx, int argc, char **argv, int in
 		break;
 	case 17:
 		ctx->engine = strdup(optarg);
+		break;
 	case 18:
 		ctx->engine_opts = strdup(optarg);
+		break;
+	case 19:
+		ctx->key_pass = strdup(optarg);
+		break;
     default:
         sstp_usage_die(argv[0], -1, "Unrecognized command line option");
         break;
@@ -293,8 +303,9 @@ int sstp_parse_argv(sstp_option_st *ctx, int argc, char **argv)
 		{ "key",			required_argument, NULL,  0  },
 		{ "engine",			required_argument, NULL,  0  },
 		{ "engine-opt",		required_argument, NULL,  0  },
-        { "version",        no_argument,       NULL, 'v' },
+		{ "key-pass",		required_argument, NULL,  0  },
 		/*end client certificate related options */
+        { "version",        no_argument,       NULL, 'v' },
         { 0, 0, 0, 0 }
     };
 

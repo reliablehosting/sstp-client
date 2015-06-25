@@ -86,6 +86,41 @@ This will automatically add and remove a route to the SSTP server.
 .TP
 .B \-\-uuid
 Specify a UUID for the connection to simplify the server end debugging.
+.SS Client certificates
+.TP
+.BI \-\-cert " filename"
+Specify a client certificate to use for authenticate to the server.
+Certificate should be in the PEM format. 
+.TP
+.BI \-\-priv\-key " filename"
+.TP
+.BI "\-\-priv\-key engine:" id
+Specify a private key for client certificate. First form specifies key
+in the PEM file, second \- provided by engine module (i.e stored on
+hardware token). Unforunately, pkcs11 engine is unable to provide
+openssl library with certificate from token, so you-ll have
+to extact certificate from token with 
+.B pkcs11-tool 
+manually to use key in the hardware token.
+.TP 
+.BI \-\-key-pass " password"
+Specify decryption password for private key file. If not specified,
+you'll be prompted for password if there is a controlling terminal to
+use. Unfortunately this option doesn't work with engine-provided keys.
+See documentation for you engine, it might have engine option to pass
+token PIN without interactive promptig.
+.TP 
+.BI \-\-engine " name"
+Specify an OpenSSL loadable module (engine) to handle private key. For
+most hardware tokens you can use PKCS11 engine from opensc project.
+.TP 
+.BI \-\-engine\-opt " name" = value , name = value
+Specify an options for engine. PKCS11 engine, for example need 
+.B MODULE_PATH
+option to specify PKCS11 module to use. Several engine options can be
+specified, separated by comma. No spaces are allowed around commas and
+equal sign.
+
 .SS Troubleshooting
 The following options are available to help troubleshoot
 .B sstpc

@@ -33,7 +33,9 @@
 
 #include "sstp-private.h"
 #include "sstp-client.h"
-
+#include <openssl/engine.h>
+#include <openssl/ui.h>
+#include <openssl/conf.h>
 /*! Global context for the sstp-client */
 static sstp_client_st client;
 
@@ -425,7 +427,95 @@ done:
     return ret;
 }
 
+/*!
+ * @brief Password callback for PEM_read_PrivateKey function
+ *
+ * Mostly borrowed from OpenSSL apps.c file, with significant
+ * simplification.
+ */
 
+static int password_callback(char *buf, int bufsize, int verify, void
+*userdata)
+{
+    UI *ui = NULL;
+	int res = 0;
+	const char *prompt_info = NULL;
+	const char *password = userdata;
+	const char *prompt = "Private key password: ";
+	int ui_flags = 0;
+	int ok = 0;
+	char *buff = NULL;
+	if (password) 
+	{  
+	   /* 
+	    * We use userdata ponter to pass password to callback
+		* if password is specified as command-line option. 
+		* So, if userdata is not NULL, interpret it as pointer to
+		* 0-terminatedpassword
+		*/
+	   res=strlen(password);
+	   if (res > bufsize)
+	       res = bufsize;
+	   memcpy(buf,password, res);
+	   return res;
+	}
+	/* 
+	 * Otherwise use openssl UI method to as the passwod
+	 */
+   ui = UI_new();
+   if (!ui) {
+		log_err("Error allocating password prompt UI");
+		return res;
+   }
+   ui_flags = UI_INPUT_FLAG_DEFAULT_PWD;
+   UI_ctrl(ui, UI_CTRL_PRINT_ERRORS, 1, 0, 0);
+   ok = UI_add_input_string(ui,prompt,ui_flags, buf,
+  		 SSTP_PW_MIN_LENGTH,bufsize-1);
+   if (ok >=0 && verify) 
+   {
+   	   buff = (char *) OPENSSL_malloc(bufsize);
+	   ok = UI_add_verify_string(ui,prompt,ui_flags, buff,
+	   	SSTP_PW_MIN_LENGTH, bufsize-1, buf);
+   }
+   if (ok >= 0) 
+      do
+	  {
+	     ok = UI_process(ui);
+	  } 
+	  while (ok < 0 && UI_ctrl(ui, UI_CTRL_IS_REDOABLE, 0, 0, 0));
+   
+   if (buff)
+   {
+       OPENSSL_cleanse(buff, (unsigned int) bufsize);
+	   OPENSSL_free(buff);
+   }
+   
+   if (ok >= 0)
+   {
+     res = strlen(buf);
+   }
+   else 
+   {
+      OPENSSL_cleanse(buf, (unsigned int) bufsize);
+	  res = 0;
+   }
+   UI_free(ui);
+   return res;
+}
+
+/*!
+ * @brief extracts detailed openssl error information and sends to
+ * log_debug
+ */ 
+static void log_ssl_error(void) 
+{
+	unsigned long e;
+	char buf[128];
+	while( (e = ERR_get_error()) ) 
+	{
+	     log_debug(ERR_error_string(e,buf));
+	}
+}
 /*!
  * @brief Perform the global SSL initializers
  */
@@ -454,6 +544,7 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
     if (client->ssl_ctx == NULL)
     {
         log_err("Could not get SSL crypto context");
+		log_ssl_error();
         goto done;
     }
 
@@ -462,6 +553,7 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
     if (status == -1)
     {
         log_err("Could not set SSL options");
+		log_ssl_error();
         goto done;
     }
 
@@ -473,70 +565,137 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
                 opt->ca_cert, opt->ca_path);
         if (status != 1)
         {
-            logerr("Could not set default verify location");
+            log_err("Could not set verify location");
+			log_ssl_error();
             goto done;
         }
     }
 
     SSL_CTX_set_verify_depth(client->ssl_ctx, 1);
-	if (opt->engine) {
+	if (opt->engine) 
+	{
 	/* If engine is specified, try to load it even if it is not used to
 	 * store private key
 	 */
-	e=ENGINE_by_id(opt->engine):
-	if (e == NULL) 
-	{
-	 	logerr("Couldn not load engine");
-		goto done;
-	}
-	if (opt->engine_opts) 
-	{
-	 	/* tokenize the options and pass them to ENGINE_ctrl_cmd_string
-		 */
+		e=ENGINE_by_id(opt->engine);
+		if (e == NULL) 
+		{
+			log_err("Couldn't not load engine");
+			log_ssl_error();
+			goto done;
+		}
+		if (opt->engine_opts) 
+		{
+			/* tokenize the options and pass them to ENGINE_ctrl_cmd_string
+			* Expect no spaces around commas and equal signs
+			*/
+			char *opts=opt->engine_opts;
+			while (opts) 
+			{
+				char *p=strchr(opts,',');
+				char *current_opt=NULL;
+				if (p) {
+					current_opt=malloc((p-opts)+1);
+					memcpy(current_opt,opts,p-opts);
+					opts=p+1;
+				}
+				else 
+				{	
+					current_opt=strdup(opts);
+					opts=NULL;
+				}
+				log_debug(current_opt);
+				p=strchr(current_opt,'=');
+				*(p++)=0;
+				if (!ENGINE_ctrl_cmd_string(e, current_opt, p, 0)) 
+				{
+					const char *msg="Error sending engine command: ";
+					p=malloc(strlen(msg)+strlen(current_opt)+1);
+					strcpy(p,msg);
+					strcat(p,current_opt);
+					free(current_opt);
+					log_err(p);
+					log_ssl_error();
+					free(p);
+					goto done;
+				}
+				free(current_opt);
+			}		
+		}		
+		if (!ENGINE_init(e)) 
+		{
+			log_err("Cannot initialize engine");
+			log_ssl_error();
+			goto done;
+		}
 	}
 	if (opt->cert) 
 	{	
-		if (!SSL_CTX_use_certificate_file(client->ssl_ctx,opt->cert,SSL_FILETYPE_PM)) {
+		if (!SSL_CTX_use_certificate_file(client->ssl_ctx, opt->cert,
+		          SSL_FILETYPE_PEM)) 
+		{
 			log_err("Could not load certificate file");
+			log_ssl_error();
 			goto done;
 		}
-		if (!opt->priv_key) {
+		
+		SSL_CTX_set_default_passwd_cb(client->ssl_ctx,
+	 	            password_callback);
+		SSL_CTX_set_default_passwd_cb_userdata(client->ssl_ctx,
+		            opt->key_pass);
+
+		if (!opt->priv_key) 
+		{
 			/* Assume that private key in the same file as certificate */
 			if (!SSL_CTX_use_PrivateKey_file(client->ssl_ctx,opt->cert,SSL_FILETYPE_PEM))
-			{ logerr("Could not load private key from certificate file");
-			goto done;
+			{ 
+				log_err("Could not load private key from certificate file");
+				log_ssl_error();
+				goto done;
 			}
-		} else {
+		} 
+		else 
+		{
 			/* Check if  key is engine-provided */
-			EVP_KEY *key;
-			UI *ui=sstp_init_ssl_ui();
-			if (strncmp("engine:",opt->priv_key,7)==0) {
+			if (strncmp("engine:",opt->priv_key,7)==0) 
+			{
+				EVP_PKEY *key = NULL;
 				if (!e) 
 				{
-					logerr("Engine provided key but no engine loaded");
+					log_err("Engine provided key but no engine loaded");
 					goto done;
 				}
-				key=ENGINE_load_private_key(e,opt->priv_key+7,ui,NULL);
-			} else {
-				FILE *f=fopen(opt->priv_key,"r");
-				if (!f) 
+				key=ENGINE_load_private_key(e,opt->priv_key+7,
+				  UI_OpenSSL(),NULL);
+				if (!key) 
 				{
-					logerr("Couldn't open private key file");
+					log_err("Couldn't load key from the engine");
+					log_ssl_error();
+					goto done;
 				}
-				key=PEM_read_PrivateKey(f,NULL,sstp_password_cb,NULL);
-			}
-			if (!key) {
-				logerr("Couldn't load private key");
-				goto done;
-			}
-			if (!SSL_CTX_use_private_key(client->ssl_ctx,key)) 
+				if (!SSL_CTX_use_PrivateKey(client->ssl_ctx,key)) 
+				{ 
+					log_err("Couldn't use key from engine");
+					log_ssl_error();
+					EVP_PKEY_free(key);
+					goto done;
+				}
+			} 
+			else 
 			{
-				logerr("Couldn't install private key into SSL CTX");
-				goto done;
+				if (!SSL_CTX_use_PrivateKey_file(client->ssl_ctx,opt->priv_key,
+					SSL_FILETYPE_PEM)) 
+				{
+				   log_err("Could not load private key file");
+				   log_ssl_error();
+				   goto done;
+				}
+
 			}
 			if (!SSL_CTX_check_private_key(client->ssl_ctx))
 			{	
-				logerr("Private key doesn't match certificate");
+				log_err("Private key doesn't match certificate");
+				log_ssl_error();
 				goto done;
 			}
 
