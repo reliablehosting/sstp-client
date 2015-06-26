@@ -23,6 +23,8 @@ Features:
 * IPv6 support
 * Basic HTTP Proxy support
 * Certficate handling and verification
+* Client certificate authentincation with peer
+* Support for client certificate keys on hardware tokens
 * SSTP plugin integration with NetworkManager v0.9 (available as separate package)
 
 

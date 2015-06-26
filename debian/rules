@@ -7,20 +7,20 @@ LDFLAGS=$(shell dpkg-buildflags --get LDFLAGS)
 CFLAGS+=$(HARDENING_CFLAGS)
 LDFLAGS+=$(HARDENING_LDFLAGS)
 
-configure:
-    
-    ./configure \
-        --prefix=/usr \
-        --sysconfdir=/etc \
-        --localstatedir=/var \
-        --includedir=${prefix}/include \
-        --libexecdir=${prefix}/lib/sstp-client \
-        --mandir=${prefix}/share/man \
-        --infodir=${prefix}/share/info \
-        --disable-dependency-tracking \
-        --with-runtime-dir="/var/run/sstpc" \
-        --enable-user \
-        --enable-group
+override_dh_auto_configure:
+	./configure \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--localstatedir=/var \
+		--includedir=/usr/include \
+		--libexecdir=/usr/lib/sstp-client \
+		--mandir=/usr/share/man \
+		--infodir=/usr/share/info \
+		--disable-dependency-tracking \
+		--with-runtime-dir="/var/run/sstpc" \
+		--with-pppd-plugin-dir="/usr/lib/pppd/2.4.6" \
+		--enable-user \
+		--enable-group
 
 %:
 	dh $@
@@ -31,5 +31,5 @@ override_dh_makeshlibs:
 
 get-orig-source:
 	cd $(dir $(firstword $(MAKEFILE_LIST)))../ && \
-    uscan --rename --force-download --watchfile debian/watch --destdir $(CURDIR)
+	uscan --rename --force-download --watchfile debian/watch --destdir $(CURDIR)
 
