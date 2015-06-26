@@ -606,6 +606,11 @@ static status_t sstp_init_ssl(sstp_client_st *client, sstp_option_st *opt)
 				}
 				log_debug(current_opt);
 				p=strchr(current_opt,'=');
+				if (!p) 
+				{
+					log_err("Invalid syntax for --engine-opt. NAME=value expected");
+					goto done;
+				}
 				*(p++)=0;
 				if (!ENGINE_ctrl_cmd_string(e, current_opt, p, 0)) 
 				{
